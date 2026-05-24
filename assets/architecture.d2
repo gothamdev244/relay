@@ -1,0 +1,47 @@
+direction: right
+
+agents: AI Agents {
+  style: {
+    fill: "#0F172A"
+    stroke: "#64748B"
+    stroke-dash: 4
+    border-radius: 8
+    font-color: "#94A3B8"
+    font-size: 14
+  }
+}
+
+relay: Relay {
+  style: {
+    fill: "#1a1a2e"
+    stroke: "#8B5CF6"
+    stroke-width: 2
+    border-radius: 8
+    font-color: "#E2E8F0"
+    font-size: 16
+    bold: true
+  }
+}
+
+apis: APIs {
+  style: {
+    fill: "#0F172A"
+    stroke: "#64748B"
+    stroke-dash: 4
+    border-radius: 8
+    font-color: "#94A3B8"
+    font-size: 14
+  }
+}
+
+agents -> relay: MCP {
+  style.stroke: "#8B5CF6"
+  style.animated: true
+  style.font-color: "#94A3B8"
+}
+
+relay -> apis: OpenAPI · GraphQL · MCP {
+  style.stroke: "#10B981"
+  style.animated: true
+  style.font-color: "#94A3B8"
+}

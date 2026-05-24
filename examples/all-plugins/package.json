@@ -1,0 +1,27 @@
+{
+  "name": "@relay-sh/example-all-plugins",
+  "version": "0.0.15",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/main.ts",
+    "typecheck": "tsgo --noEmit",
+    "typecheck:slow": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@relay-sh/plugin-file-secrets": "workspace:*",
+    "@relay-sh/plugin-google-discovery": "workspace:*",
+    "@relay-sh/plugin-graphql": "workspace:*",
+    "@relay-sh/plugin-keychain": "workspace:*",
+    "@relay-sh/plugin-mcp": "workspace:*",
+    "@relay-sh/plugin-onepassword": "workspace:*",
+    "@relay-sh/plugin-openapi": "workspace:*",
+    "@relay-sh/plugin-workos-vault": "workspace:*",
+    "@relay-sh/sdk": "workspace:*",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "latest"
+  }
+}

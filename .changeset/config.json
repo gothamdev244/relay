@@ -1,0 +1,43 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.1.3/schema.json",
+  "changelog": false,
+  "commit": false,
+  "fixed": [
+    [
+      "@relay-sh/sdk",
+      "@relay-sh/storage-core",
+      "@relay-sh/codemode-core",
+      "@relay-sh/runtime-quickjs",
+      "@relay-sh/execution",
+      "@relay-sh/config",
+      "relay",
+      "@relay-sh/plugin-file-secrets",
+      "@relay-sh/plugin-google-discovery",
+      "@relay-sh/plugin-graphql",
+      "@relay-sh/plugin-keychain",
+      "@relay-sh/plugin-mcp",
+      "@relay-sh/plugin-onepassword",
+      "@relay-sh/plugin-openapi",
+      "@relay-sh/plugin-example",
+      "@relay-sh/plugin-desktop-settings",
+      "@relay-sh/desktop"
+    ]
+  ],
+  "linked": [],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": [
+    "@relay-sh/local",
+    "@relay-sh/storage-file",
+    "@relay-sh/host-mcp",
+    "@relay-sh/ir",
+    "@relay-sh/runtime-deno-subprocess",
+    "@relay-sh/marketing",
+    "@relay-sh/runtime-dynamic-worker",
+    "@relay-sh/storage-postgres",
+    "@relay-sh/plugin-workos-vault",
+    "@relay-sh/example-promise-sdk",
+    "@relay-sh/app"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "name": "@relay-sh/desktop",
+  "version": "1.4.29",
+  "private": true,
+  "homepage": "https://github.com/gothamdev244/relay",
+  "license": "MIT",
+  "type": "module",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "predev": "bun run --filter @relay-sh/local build",
+    "dev": "electron-vite dev",
+    "prebuild": "bun run --filter @relay-sh/local build && bun ./scripts/build-sidecar.ts",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "package": "electron-builder --config electron-builder.config.ts",
+    "package:mac": "electron-builder --mac --config electron-builder.config.ts",
+    "package:win": "electron-builder --win --config electron-builder.config.ts",
+    "package:linux": "electron-builder --linux --config electron-builder.config.ts",
+    "test:smoke": "bun ./scripts/smoke-sidecar.ts",
+    "typecheck": "tsgo --noEmit",
+    "typecheck:slow": "tsc --noEmit"
+  },
+  "dependencies": {
+    "electron-log": "^5",
+    "electron-store": "^10",
+    "electron-updater": "^6",
+    "electron-window-state": "^5.0.3"
+  },
+  "devDependencies": {
+    "@relay-sh/app": "workspace:*",
+    "@relay-sh/local": "workspace:*",
+    "@relay-sh/plugin-desktop-settings": "workspace:*",
+    "@relay-sh/plugin-file-secrets": "workspace:*",
+    "@relay-sh/plugin-google-discovery": "workspace:*",
+    "@relay-sh/plugin-graphql": "workspace:*",
+    "@relay-sh/plugin-keychain": "workspace:*",
+    "@relay-sh/plugin-mcp": "workspace:*",
+    "@relay-sh/plugin-onepassword": "workspace:*",
+    "@relay-sh/plugin-openapi": "workspace:*",
+    "@relay-sh/runtime-quickjs": "workspace:*",
+    "@jitl/quickjs-wasmfile-release-sync": "catalog:",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@types/node": "catalog:",
+    "bun-types": "catalog:",
+    "electron": "41.2.1",
+    "electron-builder": "^26",
+    "electron-vite": "^5",
+    "quickjs-emscripten": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}

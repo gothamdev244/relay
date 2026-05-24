@@ -1,0 +1,59 @@
+{
+  "name": "@relay-sh/execution",
+  "version": "1.4.29",
+  "homepage": "https://github.com/gothamdev244/relay/tree/main/packages/core/execution",
+  "bugs": {
+    "url": "https://github.com/gothamdev244/relay/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gothamdev244/relay.git",
+    "directory": "packages/core/execution"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./promise": "./src/promise.ts"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "import": {
+          "types": "./dist/promise.d.ts",
+          "default": "./dist/index.js"
+        }
+      },
+      "./core": {
+        "import": {
+          "types": "./dist/index.d.ts",
+          "default": "./dist/core.js"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup && (tsc --declaration --emitDeclarationOnly --outDir dist --rootDir src || true)",
+    "typecheck": "tsgo --noEmit",
+    "test": "vitest run",
+    "typecheck:slow": "bunx tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@relay-sh/codemode-core": "workspace:*",
+    "@relay-sh/sdk": "workspace:*",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@effect/vitest": "catalog:",
+    "@relay-sh/runtime-quickjs": "workspace:*",
+    "@types/node": "catalog:",
+    "bun-types": "catalog:",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

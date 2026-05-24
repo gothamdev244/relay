@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": [
+    ".astro",
+    ".reference",
+    ".turbo",
+    "dist",
+    "integrationsdotsh",
+    "node_modules",
+    "packages/core/fumadb",
+    "bun.lock",
+    "*.tsbuildinfo",
+    "relay-*.tgz",
+    "**/routeTree.gen.ts",
+    "apps/cloud/src/services/relay-schema.ts"
+  ]
+}

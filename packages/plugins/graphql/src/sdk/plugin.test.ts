@@ -1,0 +1,1189 @@
+import { describe, it, expect } from "@effect/vitest";
+import { Effect, Predicate } from "effect";
+import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http";
+
+import {
+  ConnectionId,
+  CreateConnectionInput,
+  createRelay,
+  definePlugin,
+  ElicitationResponse,
+  RemoveSecretInput,
+  Scope,
+  ScopeId,
+  SecretId,
+  TokenMaterial,
+} from "@relay-sh/sdk";
+import { makeTestConfig, serveTestHttpApp } from "@relay-sh/sdk/testing";
+import { memorySecretsPlugin } from "@relay-sh/sdk/testing";
+
+import { graphqlPlugin } from "./plugin";
+import { endpointForTelemetry } from "./invoke";
+import { introspect } from "./introspect";
+import { GraphqlSourceBindingInput, graphqlHeaderSlot, graphqlQueryParamSlot } from "./types";
+import type { IntrospectionResult } from "./introspect";
+import {
+  makeGreetingGraphqlSchema,
+  serveGraphqlFailureTestServer,
+  serveGraphqlTestServer,
+} from "../testing";
+
+const TEST_SCOPE = "test-scope";
+
+// ---------------------------------------------------------------------------
+// Mock introspection response
+// ---------------------------------------------------------------------------
+
+const introspectionResult: IntrospectionResult = {
+  __schema: {
+    queryType: { name: "Query" },
+    mutationType: { name: "Mutation" },
+    types: [
+      {
+        kind: "OBJECT",
+        name: "Query",
+        description: null,
+        fields: [
+          {
+            name: "hello",
+            description: "Say hello",
+            args: [
+              {
+                name: "name",
+                description: null,
+                type: { kind: "SCALAR", name: "String", ofType: null },
+                defaultValue: null,
+              },
+            ],
+            type: { kind: "SCALAR", name: "String", ofType: null },
+          },
+        ],
+        inputFields: null,
+        enumValues: null,
+      },
+      {
+        kind: "OBJECT",
+        name: "Mutation",
+        description: null,
+        fields: [
+          {
+            name: "setGreeting",
+            description: "Set greeting message",
+            args: [
+              {
+                name: "message",
+                description: null,
+                type: {
+                  kind: "NON_NULL",
+                  name: null,
+                  ofType: { kind: "SCALAR", name: "String", ofType: null },
+                },
+                defaultValue: null,
+              },
+            ],
+            type: { kind: "SCALAR", name: "String", ofType: null },
+          },
+        ],
+        inputFields: null,
+        enumValues: null,
+      },
+      {
+        kind: "SCALAR",
+        name: "String",
+        description: null,
+        fields: null,
+        inputFields: null,
+        enumValues: null,
+      },
+    ],
+  },
+};
+
+const introspectionJson = JSON.stringify({ data: introspectionResult });
+const serveGreetingServer = serveGraphqlTestServer({ schema: makeGreetingGraphqlSchema() });
+const declineAll = () => Effect.succeed(ElicitationResponse.make({ action: "decline" }));
+
+const sampleDataPlugin = definePlugin(() => ({
+  id: "sample-read-test" as const,
+  storage: () => ({}),
+  staticSources: () => [
+    {
+      id: "sample",
+      kind: "in-memory",
+      name: "Sample",
+      tools: [
+        {
+          name: "read",
+          description: "Read sample data",
+          inputSchema: {
+            type: "object",
+            properties: {},
+            additionalProperties: false,
+          },
+          handler: () => Effect.succeed("sample-value"),
+        },
+      ],
+    },
+  ],
+}));
+
+describe("graphqlPlugin real protocol server", () => {
+  it("uses query-free endpoints for invocation attributes", () => {
+    expect(endpointForTelemetry("https://api.example.test/graphql?token=secret#section")).toBe(
+      "https://api.example.test/graphql",
+    );
+  });
+
+  it.effect("does not include upstream response bodies in introspection status errors", () =>
+    Effect.gen(function* () {
+      const server = yield* serveGraphqlFailureTestServer({
+        status: 500,
+        body: "internal token value",
+      });
+
+      const error = yield* introspect(server.endpoint).pipe(
+        Effect.provide(server.httpClientLayer),
+        Effect.flip,
+      );
+
+      expect(error).toHaveProperty("message", "Introspection failed with status 500");
+      expect(error).not.toHaveProperty("message", expect.stringContaining("internal token value"));
+    }),
+  );
+
+  it.effect("adds a source by introspecting the live GraphQL endpoint", () =>
+    Effect.gen(function* () {
+      const server = yield* serveGreetingServer;
+      const relay = yield* createRelay(
+        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
+      );
+
+      const result = yield* relay.graphql.addSource({
+        endpoint: server.endpoint,
+        scope: TEST_SCOPE,
+        namespace: "live_graph",
+      });
+
+      expect(result).toEqual({ toolCount: 2, namespace: "live_graph" });
+
+      const tools = yield* relay.tools.list();
+      expect(tools.map((tool) => tool.id)).toEqual(
+        expect.arrayContaining(["live_graph.query.hello", "live_graph.mutation.setGreeting"]),
+      );
+
+      const requests = yield* server.requests;
+      expect(requests.some((request) => request.payload.query?.includes("__schema"))).toBe(true);
+    }),
+  );
+
+  it.effect("invokes a live query with headers and query params", () =>
+    Effect.gen(function* () {
+      const server = yield* serveGreetingServer;
+      const relay = yield* createRelay(
+        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
+      );
+
+      yield* relay.graphql.addSource({
+        endpoint: server.endpoint,
+        scope: TEST_SCOPE,
+        namespace: "live_invoke",
+        headers: { "x-static": "abc" },
+        queryParams: { token: "qp-token" },
+      });
+      yield* server.clearRequests;
+
+      const result = yield* relay.tools.invoke("live_invoke.query.hello", {
+        name: "Ada",
+      });
+
+      expect(result).toEqual({
+        ok: true,
+        data: { hello: "Hello Ada" },
+      });
+
+      const requests = yield* server.requests;
+      expect(requests.length).toBe(1);
+      expect(requests[0]?.headers["x-static"]).toBe("abc");
+      expect(new URL(requests[0]!.url).searchParams.get("token")).toBe("qp-token");
+      expect(requests[0]?.payload.variables).toEqual({ name: "Ada" });
+    }),
+  );
+
+  it.effect("surfaces non-2xx invocation responses as ToolResult.fail", () =>
+    Effect.gen(function* () {
+      const server = yield* serveTestHttpApp((request) =>
+        Effect.gen(function* () {
+          const webRequest = yield* HttpServerRequest.toWeb(request);
+          const body = yield* Effect.promise(() => webRequest.text());
+          if (body.includes("__schema")) {
+            return HttpServerResponse.jsonUnsafe({ data: introspectionResult });
+          }
+          return HttpServerResponse.text("temporary upstream outage", {
+            status: 503,
+            contentType: "text/plain",
+          });
+        }),
+      );
+      const relay = yield* createRelay(
+        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
+      );
+
+      yield* relay.graphql.addSource({
+        endpoint: server.url("/graphql"),
+        scope: TEST_SCOPE,
+        namespace: "http_error_graph",
+      });
+
+      const result = yield* relay.tools.invoke("http_error_graph.query.hello", {
+        name: "Ada",
+      });
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: {
+          code: "graphql_http_error",
+          status: 503,
+          message: "GraphQL request failed with HTTP 503",
+        },
+      });
+    }),
+  );
+
+  it.effect("invokes OAuth-backed sources with a bearer token", () =>
+    Effect.gen(function* () {
+      const server = yield* serveGreetingServer;
+      const relay = yield* createRelay(
+        makeTestConfig({
+          plugins: [memorySecretsPlugin(), graphqlPlugin()] as const,
+        }),
+      );
+
+      const connectionId = ConnectionId.make("graphql-oauth2-test");
+      yield* relay.connections.create(
+        CreateConnectionInput.make({
+          id: connectionId,
+          scope: ScopeId.make(TEST_SCOPE),
+          provider: "oauth2",
+          identityLabel: "GraphQL Test",
+          accessToken: TokenMaterial.make({
+            secretId: SecretId.make(`${connectionId}.access_token`),
+            name: "GraphQL Access Token",
+            value: "secret-token",
+          }),
+          refreshToken: null,
+          expiresAt: null,
+          oauthScope: null,
+          providerState: null,
+        }),
+      );
+
+      yield* relay.graphql.addSource({
+        endpoint: server.endpoint,
+        scope: TEST_SCOPE,
+        namespace: "oauth_graph",
+        credentialTargetScope: TEST_SCOPE,
+        auth: { kind: "oauth2", connectionId },
+      });
+      yield* server.clearRequests;
+
+      const result = yield* relay.tools.invoke("oauth_graph.query.hello", {
+        name: "Ada",
+      });
+
+      expect(result).toEqual({
+        ok: true,
+        data: { hello: "Hello Ada" },
+      });
+
+      const requests = yield* server.requests;
+      expect(requests[0]?.headers.authorization).toBe("Bearer secret-token");
+    }),
+  );
+});
+
+describe("graphqlPlugin", () => {
+  it.effect("registers tools from introspection JSON", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(
+        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
+      );
+
+      const result = yield* relay.graphql.addSource({
+        endpoint: "http://localhost:4000/graphql",
+        scope: "test-scope",
+        introspectionJson,
+        namespace: "test_api",
+      });
+      expect(result.toolCount).toBe(2);
+      expect(result.namespace).toBe("test_api");
+
+      const tools = yield* relay.tools.list();
+      const ids = tools.map((t) => t.id);
+      expect(ids).toContain("test_api.query.hello");
+      expect(ids).toContain("test_api.mutation.setGreeting");
+      // static relay tool also present under the relay namespace
+      expect(ids).toContain("relay.graphql.addSource");
+
+      const queryTool = tools.find((t) => t.id === "test_api.query.hello");
+      expect(queryTool?.description).toBe("Say hello");
+
+      const mutationTool = tools.find((t) => t.id === "test_api.mutation.setGreeting");
+      expect(mutationTool?.description).toBe("Set greeting message");
+    }),
+  );
+
+  it.effect("removes a source and its tools", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(
+        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
+      );
+
+      yield* relay.graphql.addSource({
+        endpoint: "http://localhost:4000/graphql",
+        scope: "test-scope",
+        introspectionJson,
+        namespace: "removable",
+      });
+
+      let tools = yield* relay.tools.list();
+      expect(tools.filter((t) => t.sourceId === "removable").length).toBe(2);
+
+      yield* relay.graphql.removeSource("removable", TEST_SCOPE);
+
+      tools = yield* relay.tools.list();
+      expect(tools.filter((t) => t.sourceId === "removable").length).toBe(0);
+
+      const source = yield* relay.graphql.getSource("removable", TEST_SCOPE);
+      expect(source).toBeNull();
+    }),
+  );
+
+  it.effect("lists sources with the relay built-in source", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(
+        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
+      );
+
+      yield* relay.graphql.addSource({
+        endpoint: "http://localhost:4000/graphql",
+        scope: "test-scope",
+        introspectionJson,
+        namespace: "my_gql",
+      });
+
+      const sources = yield* relay.sources.list();
+      const dynamic = sources.find((s) => s.id === "my_gql");
+      expect(dynamic).toBeDefined();
+      expect(dynamic!.kind).toBe("graphql");
+      expect(dynamic!.canRemove).toBe(true);
+      expect(dynamic!.canEdit).toBe(true);
+      expect(dynamic!.runtime).toBe(false);
+
+      expect(sources.find((s) => s.id === "graphql")).toBeUndefined();
+      const control = sources.find((s) => s.id === "relay");
+      expect(control).toBeDefined();
+      expect(control!.runtime).toBe(true);
+    }),
+  );
+
+  it.effect("mutations require approval via resolveAnnotations", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(
+        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
+      );
+
+      yield* relay.graphql.addSource({
+        endpoint: "http://localhost:4000/graphql",
+        scope: "test-scope",
+        introspectionJson,
+        namespace: "approval_test",
+      });
+
+      const tools = yield* relay.tools.list();
+      const mutationTool = tools.find((t) => t.id === "approval_test.mutation.setGreeting");
+      expect(mutationTool).toBeDefined();
+      expect(mutationTool!.annotations?.requiresApproval).toBe(true);
+      expect(mutationTool!.annotations?.approvalDescription).toBe("mutation setGreeting");
+
+      const queryTool = tools.find((t) => t.id === "approval_test.query.hello");
+      expect(queryTool).toBeDefined();
+      expect(queryTool!.annotations?.requiresApproval).toBeFalsy();
+    }),
+  );
+
+  it.effect("updateSource patches endpoint/headers without re-registering", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(
+        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
+      );
+
+      yield* relay.graphql.addSource({
+        endpoint: "http://localhost:4000/graphql",
+        scope: "test-scope",
+        introspectionJson,
+        namespace: "patched",
+      });
+
+      yield* relay.graphql.updateSource("patched", TEST_SCOPE, {
+        endpoint: "http://localhost:5000/graphql",
+        headers: { "x-custom": "abc" },
+      });
+
+      const source = yield* relay.graphql.getSource("patched", TEST_SCOPE);
+      expect(source?.endpoint).toBe("http://localhost:5000/graphql");
+      expect(source?.headers).toEqual({ "x-custom": "abc" });
+
+      // Tools still present (no re-register happened, but they were
+      // already there from addSource and haven't been removed).
+      const tools = yield* relay.tools.list();
+      expect(tools.filter((t) => t.sourceId === "patched").length).toBe(2);
+    }),
+  );
+
+  it.effect("static relay.graphql.addSource delegates to extension", () =>
+    Effect.gen(function* () {
+      const userScope = ScopeId.make("static-user");
+      const orgScope = ScopeId.make("static-org");
+      const relay = yield* createRelay(
+        makeTestConfig({
+          scopes: [
+            Scope.make({ id: userScope, name: "user", createdAt: new Date() }),
+            Scope.make({ id: orgScope, name: "org", createdAt: new Date() }),
+          ],
+          plugins: [graphqlPlugin()] as const,
+        }),
+      );
+
+      const result = yield* relay.tools.invoke(
+        "relay.graphql.addSource",
+        {
+          scope: String(orgScope),
+          endpoint: "http://localhost:4000/graphql",
+          introspectionJson,
+          namespace: "via_static",
+        },
+        { onElicitation: "accept-all" },
+      );
+      expect(result).toEqual({ ok: true, data: { toolCount: 2, namespace: "via_static" } });
+      expect(yield* relay.graphql.getSource("via_static", String(userScope))).toBeNull();
+      expect((yield* relay.graphql.getSource("via_static", String(orgScope)))?.scope).toBe(
+        orgScope,
+      );
+
+      const tools = yield* relay.tools.list();
+      expect(tools.filter((t) => t.sourceId === "via_static").length).toBe(2);
+    }),
+  );
+
+  it.effect("describes static addSource parameters from Standard Schema", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(makeTestConfig({ plugins: [graphqlPlugin()] }));
+
+      const schema = yield* relay.tools.schema("relay.graphql.addSource");
+
+      expect(schema).not.toBeNull();
+      expect(schema!.inputTypeScript).toContain("scope: string");
+      expect(schema!.inputTypeScript).toContain("endpoint: string");
+      expect(
+        (schema!.inputSchema as { properties?: Record<string, unknown> }).properties,
+      ).toHaveProperty("credentialTargetScope");
+      expect(schema!.inputTypeScript).not.toBe("Record<string, unknown>");
+    }),
+  );
+
+  it.effect("requires approval before a runtime-added query sends prior tool output", () =>
+    Effect.gen(function* () {
+      const server = yield* serveGreetingServer;
+      const relay = yield* createRelay(
+        makeTestConfig({ plugins: [sampleDataPlugin(), graphqlPlugin()] as const }),
+      );
+
+      const trusted = yield* relay.tools.invoke(
+        "sample.read",
+        {},
+        { onElicitation: declineAll },
+      );
+      expect(trusted).toBe("sample-value");
+      const declined = yield* relay.tools
+        .invoke(
+          "relay.graphql.addSource",
+          {
+            endpoint: server.endpoint,
+            scope: TEST_SCOPE,
+            introspectionJson,
+            namespace: "runtime_graphql",
+          },
+          { onElicitation: declineAll },
+        )
+        .pipe(Effect.flip);
+      expect(Predicate.isTagged(declined, "ElicitationDeclinedError")).toBe(true);
+
+      const requests = yield* server.requests;
+      expect(requests.some((request) => request.payload.variables?.name === "sample-value")).toBe(
+        false,
+      );
+    }),
+  );
+
+  it.effect("applies source headers to the introspection request after approval", () =>
+    Effect.gen(function* () {
+      const server = yield* serveGreetingServer;
+      const relay = yield* createRelay(
+        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
+      );
+
+      yield* relay.tools.invoke(
+        "relay.graphql.addSource",
+        {
+          endpoint: server.endpoint,
+          scope: TEST_SCOPE,
+          namespace: "header_materialization",
+          headers: {
+            authorization: "Bearer sample-token",
+          },
+        },
+        { onElicitation: "accept-all" },
+      );
+
+      const requests = yield* server.requests;
+      expect(
+        requests.some((request) => request.headers.authorization === "Bearer sample-token"),
+      ).toBe(true);
+    }),
+  );
+
+  // -------------------------------------------------------------------------
+  // Multi-scope shadowing — regression suite covering the bug class where
+  // store reads/writes that don't pin scope_id collapse onto whichever visible
+  // row wins first. Each
+  // scenario is reproducible against the pre-fix store.
+  // -------------------------------------------------------------------------
+
+  const ORG_SCOPE = "org-scope";
+  const USER_SCOPE = "user-scope";
+
+  const stackedScopes = [
+    Scope.make({
+      id: ScopeId.make(USER_SCOPE),
+      name: "user",
+      createdAt: new Date(),
+    }),
+    Scope.make({
+      id: ScopeId.make(ORG_SCOPE),
+      name: "org",
+      createdAt: new Date(),
+    }),
+  ] as const;
+
+  it.effect("shadowed addSource does not wipe the outer-scope source", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(
+        makeTestConfig({
+          scopes: stackedScopes,
+          plugins: [graphqlPlugin()] as const,
+        }),
+      );
+
+      // Org-level base source
+      yield* relay.graphql.addSource({
+        endpoint: "http://org.example.com/graphql",
+        scope: ORG_SCOPE,
+        introspectionJson,
+        namespace: "shared",
+        name: "Org Source",
+      });
+
+      // Per-user shadow with the same namespace
+      yield* relay.graphql.addSource({
+        endpoint: "http://user.example.com/graphql",
+        scope: USER_SCOPE,
+        introspectionJson,
+        namespace: "shared",
+        name: "User Source",
+      });
+
+      const userView = yield* relay.graphql.getSource("shared", USER_SCOPE);
+      const orgView = yield* relay.graphql.getSource("shared", ORG_SCOPE);
+
+      // Both rows must coexist — innermost-wins reads come from the
+      // executor; the store's scope-pinned getters return the exact row.
+      expect(userView?.name).toBe("User Source");
+      expect(userView?.scope).toBe(USER_SCOPE);
+      expect(userView?.endpoint).toBe("http://user.example.com/graphql");
+      expect(orgView?.name).toBe("Org Source");
+      expect(orgView?.scope).toBe(ORG_SCOPE);
+      expect(orgView?.endpoint).toBe("http://org.example.com/graphql");
+    }),
+  );
+
+  it.effect("removeSource on user shadow leaves the org row intact", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(
+        makeTestConfig({
+          scopes: stackedScopes,
+          plugins: [graphqlPlugin()] as const,
+        }),
+      );
+
+      yield* relay.graphql.addSource({
+        endpoint: "http://org.example.com/graphql",
+        scope: ORG_SCOPE,
+        introspectionJson,
+        namespace: "shared",
+        name: "Org Source",
+      });
+      yield* relay.graphql.addSource({
+        endpoint: "http://user.example.com/graphql",
+        scope: USER_SCOPE,
+        introspectionJson,
+        namespace: "shared",
+        name: "User Source",
+      });
+
+      yield* relay.graphql.removeSource("shared", USER_SCOPE);
+
+      const userView = yield* relay.graphql.getSource("shared", USER_SCOPE);
+      const orgView = yield* relay.graphql.getSource("shared", ORG_SCOPE);
+
+      expect(userView).toBeNull();
+      expect(orgView?.name).toBe("Org Source");
+      expect(orgView?.endpoint).toBe("http://org.example.com/graphql");
+    }),
+  );
+
+  it.effect("updateSource on user shadow does not mutate the org row", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(
+        makeTestConfig({
+          scopes: stackedScopes,
+          plugins: [graphqlPlugin()] as const,
+        }),
+      );
+
+      yield* relay.graphql.addSource({
+        endpoint: "http://org.example.com/graphql",
+        scope: ORG_SCOPE,
+        introspectionJson,
+        namespace: "shared",
+        name: "Org Source",
+      });
+      yield* relay.graphql.addSource({
+        endpoint: "http://user.example.com/graphql",
+        scope: USER_SCOPE,
+        introspectionJson,
+        namespace: "shared",
+        name: "User Source",
+      });
+
+      yield* relay.graphql.updateSource("shared", USER_SCOPE, {
+        name: "User Renamed",
+        endpoint: "http://user-new.example.com/graphql",
+      });
+
+      const userView = yield* relay.graphql.getSource("shared", USER_SCOPE);
+      const orgView = yield* relay.graphql.getSource("shared", ORG_SCOPE);
+
+      expect(userView?.name).toBe("User Renamed");
+      expect(userView?.endpoint).toBe("http://user-new.example.com/graphql");
+      expect(orgView?.name).toBe("Org Source");
+      expect(orgView?.endpoint).toBe("http://org.example.com/graphql");
+    }),
+  );
+
+  it.effect("credential bindings let a user override org GraphQL headers and query params", () =>
+    Effect.gen(function* () {
+      const server = yield* serveGreetingServer;
+      const relay = yield* createRelay(
+        makeTestConfig({
+          scopes: stackedScopes,
+          plugins: [memorySecretsPlugin(), graphqlPlugin()] as const,
+        }),
+      );
+
+      yield* relay.secrets.set({
+        id: SecretId.make("org-token"),
+        scope: ScopeId.make(ORG_SCOPE),
+        name: "Org token",
+        value: "org-secret",
+        provider: "memory",
+      });
+      yield* relay.secrets.set({
+        id: SecretId.make("org-query"),
+        scope: ScopeId.make(ORG_SCOPE),
+        name: "Org query",
+        value: "org-query-secret",
+        provider: "memory",
+      });
+      yield* relay.secrets.set({
+        id: SecretId.make("user-token"),
+        scope: ScopeId.make(USER_SCOPE),
+        name: "User token",
+        value: "user-secret",
+        provider: "memory",
+      });
+      yield* relay.secrets.set({
+        id: SecretId.make("user-query"),
+        scope: ScopeId.make(USER_SCOPE),
+        name: "User query",
+        value: "user-query-secret",
+        provider: "memory",
+      });
+
+      yield* relay.graphql.addSource({
+        endpoint: server.endpoint,
+        scope: ORG_SCOPE,
+        namespace: "shared_credentials",
+        introspectionJson,
+        headers: {
+          Authorization: { secretId: "org-token", prefix: "Bearer " },
+        },
+        queryParams: {
+          token: { secretId: "org-query" },
+        },
+        credentialTargetScope: ORG_SCOPE,
+      });
+
+      yield* relay.graphql.setSourceBinding(
+        GraphqlSourceBindingInput.make({
+          sourceId: "shared_credentials",
+          sourceScope: ScopeId.make(ORG_SCOPE),
+          scope: ScopeId.make(USER_SCOPE),
+          slot: graphqlHeaderSlot("Authorization"),
+          value: { kind: "secret", secretId: SecretId.make("user-token") },
+        }),
+      );
+      yield* relay.graphql.setSourceBinding(
+        GraphqlSourceBindingInput.make({
+          sourceId: "shared_credentials",
+          sourceScope: ScopeId.make(ORG_SCOPE),
+          scope: ScopeId.make(USER_SCOPE),
+          slot: graphqlQueryParamSlot("token"),
+          value: { kind: "secret", secretId: SecretId.make("user-query") },
+        }),
+      );
+
+      yield* server.clearRequests;
+      const result = yield* relay.tools.invoke("shared_credentials.query.hello", {
+        name: "Ada",
+      });
+
+      expect(result).toMatchObject({
+        ok: true,
+        data: { hello: "Hello Ada" },
+      });
+      const requests = yield* server.requests;
+      expect(requests[0]?.headers.authorization).toBe("Bearer user-secret");
+      expect(new URL(requests[0]!.url).searchParams.get("token")).toBe("user-query-secret");
+    }),
+  );
+
+  it.effect("addSource stores direct GraphQL credential bindings at each row scope", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(
+        makeTestConfig({
+          scopes: stackedScopes,
+          plugins: [memorySecretsPlugin(), graphqlPlugin()] as const,
+        }),
+      );
+
+      yield* relay.secrets.set({
+        id: SecretId.make("row-user-token"),
+        scope: ScopeId.make(USER_SCOPE),
+        name: "User token",
+        value: "user-secret",
+        provider: "memory",
+      });
+      yield* relay.secrets.set({
+        id: SecretId.make("row-org-query"),
+        scope: ScopeId.make(ORG_SCOPE),
+        name: "Org query",
+        value: "org-secret",
+        provider: "memory",
+      });
+
+      yield* relay.graphql.addSource({
+        endpoint: "https://example.com/graphql",
+        scope: ORG_SCOPE,
+        namespace: "row_scoped_credentials",
+        introspectionJson,
+        headers: {
+          Authorization: {
+            secretId: "row-user-token",
+            prefix: "Bearer ",
+            targetScope: USER_SCOPE,
+          },
+        },
+        queryParams: {
+          token: {
+            secretId: "row-org-query",
+            targetScope: ORG_SCOPE,
+          },
+        },
+      });
+
+      const bindings = yield* relay.graphql.listSourceBindings(
+        "row_scoped_credentials",
+        ORG_SCOPE,
+      );
+
+      expect(bindings.map((binding) => binding.slot).sort()).toEqual([
+        graphqlHeaderSlot("Authorization"),
+        graphqlQueryParamSlot("token"),
+      ]);
+      expect(
+        bindings.find((binding) => binding.slot === graphqlHeaderSlot("Authorization"))?.scopeId,
+      ).toBe(ScopeId.make(USER_SCOPE));
+      expect(
+        bindings.find((binding) => binding.slot === graphqlQueryParamSlot("token"))?.scopeId,
+      ).toBe(ScopeId.make(ORG_SCOPE));
+    }),
+  );
+
+  it.effect("org header binding resolves the org secret when a user has the same secret id", () =>
+    Effect.gen(function* () {
+      const server = yield* serveGreetingServer;
+      const relay = yield* createRelay(
+        makeTestConfig({
+          scopes: stackedScopes,
+          plugins: [memorySecretsPlugin(), graphqlPlugin()] as const,
+        }),
+      );
+
+      yield* relay.secrets.set({
+        id: SecretId.make("shared-token"),
+        scope: ScopeId.make(ORG_SCOPE),
+        name: "Org token",
+        value: "org-secret",
+        provider: "memory",
+      });
+
+      yield* relay.graphql.addSource({
+        endpoint: server.endpoint,
+        scope: ORG_SCOPE,
+        namespace: "org_bound_secret",
+        introspectionJson,
+        headers: {
+          Authorization: { secretId: "shared-token", prefix: "Bearer " },
+        },
+        credentialTargetScope: ORG_SCOPE,
+      });
+
+      yield* relay.secrets.set({
+        id: SecretId.make("shared-token"),
+        scope: ScopeId.make(USER_SCOPE),
+        name: "User colliding token",
+        value: "user-secret",
+        provider: "memory",
+      });
+
+      yield* server.clearRequests;
+      const result = yield* relay.tools.invoke("org_bound_secret.query.hello", {
+        name: "Ada",
+      });
+
+      expect(result).toMatchObject({
+        ok: true,
+        data: { hello: "Hello Ada" },
+      });
+      const requests = yield* server.requests;
+      expect(requests[0]?.headers.authorization).toBe("Bearer org-secret");
+    }),
+  );
+
+  it.effect(
+    "org oauth binding resolves the org connection when a user has the same connection id",
+    () =>
+      Effect.gen(function* () {
+        const server = yield* serveGreetingServer;
+        const relay = yield* createRelay(
+          makeTestConfig({
+            scopes: stackedScopes,
+            plugins: [memorySecretsPlugin(), graphqlPlugin()] as const,
+          }),
+        );
+        const connectionId = ConnectionId.make("shared-graphql-connection");
+
+        yield* relay.connections.create(
+          CreateConnectionInput.make({
+            id: connectionId,
+            scope: ScopeId.make(ORG_SCOPE),
+            provider: "oauth2",
+            identityLabel: "Org connection",
+            accessToken: TokenMaterial.make({
+              secretId: SecretId.make("org-shared-graphql-connection.access_token"),
+              name: "Org access token",
+              value: "org-access-token",
+            }),
+            refreshToken: null,
+            expiresAt: null,
+            oauthScope: null,
+            providerState: null,
+          }),
+        );
+
+        yield* relay.graphql.addSource({
+          endpoint: server.endpoint,
+          scope: ORG_SCOPE,
+          namespace: "org_bound_connection",
+          introspectionJson,
+          auth: { kind: "oauth2", connectionId },
+          credentialTargetScope: ORG_SCOPE,
+        });
+
+        yield* relay.connections.create(
+          CreateConnectionInput.make({
+            id: connectionId,
+            scope: ScopeId.make(USER_SCOPE),
+            provider: "oauth2",
+            identityLabel: "User colliding connection",
+            accessToken: TokenMaterial.make({
+              secretId: SecretId.make("user-shared-graphql-connection.access_token"),
+              name: "User access token",
+              value: "user-access-token",
+            }),
+            refreshToken: null,
+            expiresAt: null,
+            oauthScope: null,
+            providerState: null,
+          }),
+        );
+
+        yield* server.clearRequests;
+        const result = yield* relay.tools.invoke("org_bound_connection.query.hello", {
+          name: "Ada",
+        });
+
+        expect(result).toMatchObject({
+          ok: true,
+          data: { hello: "Hello Ada" },
+        });
+        const requests = yield* server.requests;
+        expect(requests[0]?.headers.authorization).toBe("Bearer org-access-token");
+      }),
+  );
+
+  it.effect("updateSource removes bindings for credential slots no longer present", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(
+        makeTestConfig({
+          scopes: stackedScopes,
+          plugins: [memorySecretsPlugin(), graphqlPlugin()] as const,
+        }),
+      );
+
+      yield* relay.secrets.set({
+        id: SecretId.make("old-token"),
+        scope: ScopeId.make(ORG_SCOPE),
+        name: "Old token",
+        value: "old-secret",
+        provider: "memory",
+      });
+
+      yield* relay.graphql.addSource({
+        endpoint: "http://org.example.com/graphql",
+        scope: ORG_SCOPE,
+        namespace: "stale_binding",
+        introspectionJson,
+        headers: { "X-Old": { secretId: "old-token" } },
+        credentialTargetScope: ORG_SCOPE,
+      });
+
+      yield* relay.graphql.updateSource("stale_binding", ORG_SCOPE, {
+        headers: {},
+      });
+
+      const bindings = yield* relay.graphql.listSourceBindings("stale_binding", ORG_SCOPE);
+      expect(bindings).toEqual([]);
+    }),
+  );
+
+  // -------------------------------------------------------------------------
+  // Usage tracking — `usagesForSecret` and `usagesForConnection` should
+  // surface every reference to a secret/connection across the plugin's
+  // normalized child tables, and `secrets.remove` / `connections.remove`
+  // should refuse while a reference exists.
+  // -------------------------------------------------------------------------
+
+  it.effect("usagesForSecret returns one Usage per header/query_param ref", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(
+        makeTestConfig({
+          plugins: [memorySecretsPlugin(), graphqlPlugin()] as const,
+        }),
+      );
+
+      yield* relay.secrets.set({
+        id: SecretId.make("api-key"),
+        scope: ScopeId.make(TEST_SCOPE),
+        name: "API Key",
+        value: "abc123",
+        provider: "memory",
+      });
+
+      yield* relay.graphql.addSource({
+        endpoint: "http://localhost:4000/graphql",
+        scope: TEST_SCOPE,
+        introspectionJson,
+        namespace: "with_secret",
+        credentialTargetScope: TEST_SCOPE,
+        headers: {
+          Authorization: { secretId: "api-key", prefix: "Bearer " },
+        },
+        queryParams: { token: { secretId: "api-key" } },
+      });
+
+      const usages = yield* relay.secrets.usages(SecretId.make("api-key"));
+      // Two refs: one header, one query param.
+      expect(usages.length).toBe(2);
+      const slots = usages.map((u) => u.slot).sort();
+      expect(slots).toEqual(["header:authorization", "query_param:token"]);
+      expect(usages.every((u) => u.pluginId === "graphql")).toBe(true);
+      expect(usages.every((u) => u.ownerId === "with_secret")).toBe(true);
+      expect(usages.every((u) => u.ownerKind === "credential-binding")).toBe(true);
+    }),
+  );
+
+  it.effect("secrets.remove refuses while a graphql source still uses it", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(
+        makeTestConfig({
+          plugins: [memorySecretsPlugin(), graphqlPlugin()] as const,
+        }),
+      );
+
+      yield* relay.secrets.set({
+        id: SecretId.make("locked"),
+        scope: ScopeId.make(TEST_SCOPE),
+        name: "Locked",
+        value: "v",
+        provider: "memory",
+      });
+
+      yield* relay.graphql.addSource({
+        endpoint: "http://localhost:4000/graphql",
+        scope: TEST_SCOPE,
+        introspectionJson,
+        namespace: "ref",
+        credentialTargetScope: TEST_SCOPE,
+        headers: { "X-Token": { secretId: "locked" } },
+      });
+
+      const result = yield* relay.secrets
+        .remove(
+          RemoveSecretInput.make({
+            id: SecretId.make("locked"),
+            targetScope: ScopeId.make(TEST_SCOPE),
+          }),
+        )
+        .pipe(
+          Effect.as("removed"),
+          Effect.catchTag("SecretInUseError", () => Effect.succeed("SecretInUseError" as const)),
+        );
+      expect(result).toBe("SecretInUseError");
+
+      // After detaching the source, remove succeeds.
+      yield* relay.graphql.removeSource("ref", TEST_SCOPE);
+      yield* relay.secrets.remove(
+        RemoveSecretInput.make({
+          id: SecretId.make("locked"),
+          targetScope: ScopeId.make(TEST_SCOPE),
+        }),
+      );
+    }),
+  );
+
+  it.effect("usagesForConnection returns one Usage per source", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(
+        makeTestConfig({
+          plugins: [memorySecretsPlugin(), graphqlPlugin()] as const,
+        }),
+      );
+
+      const connectionId = ConnectionId.make("graphql-conn");
+      yield* relay.connections.create(
+        CreateConnectionInput.make({
+          id: connectionId,
+          scope: ScopeId.make(TEST_SCOPE),
+          provider: "oauth2",
+          identityLabel: "Conn",
+          accessToken: TokenMaterial.make({
+            secretId: SecretId.make(`${connectionId}.access_token`),
+            name: "Access Token",
+            value: "tok",
+          }),
+          refreshToken: null,
+          expiresAt: null,
+          oauthScope: null,
+          providerState: null,
+        }),
+      );
+
+      yield* relay.graphql.addSource({
+        endpoint: "http://localhost:4000/graphql",
+        scope: TEST_SCOPE,
+        introspectionJson,
+        namespace: "oauth_ref",
+        credentialTargetScope: TEST_SCOPE,
+        auth: { kind: "oauth2", connectionId },
+      });
+
+      const usages = yield* relay.connections.usages(connectionId);
+      expect(usages.length).toBe(1);
+      expect(usages[0]).toMatchObject({
+        pluginId: "graphql",
+        ownerKind: "credential-binding",
+        ownerId: "oauth_ref",
+        slot: "auth:oauth2:connection",
+      });
+    }),
+  );
+});
+
+describe("graphqlPlugin detect URL-token fallback", () => {
+  // Port 1 connection-refuses immediately, so introspection always
+  // fails and the URL-token fallback is the only thing that can
+  // produce a candidate.
+  it.effect("returns low-confidence candidate when path has /graphql segment", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(
+        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
+      );
+      const results = yield* relay.sources.detect("http://127.0.0.1:1/api/graphql");
+      const gql = results.find((r) => r.kind === "graphql");
+      expect(gql).toBeDefined();
+      expect(gql?.confidence).toBe("low");
+    }),
+  );
+
+  it.effect("matches graphql on hostname label", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(
+        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
+      );
+      const results = yield* relay.sources.detect("http://graphql.127.0.0.1.nip.io:1/");
+      const gql = results.find((r) => r.kind === "graphql");
+      expect(gql?.confidence).toBe("low");
+    }),
+  );
+
+  it.effect("does not match graphql as a substring", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(
+        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
+      );
+      const results = yield* relay.sources.detect("http://127.0.0.1:1/graphqlite");
+      expect(results.find((r) => r.kind === "graphql")).toBeUndefined();
+    }),
+  );
+
+  it.effect("returns null when no token match and introspection fails", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(
+        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
+      );
+      const results = yield* relay.sources.detect("http://127.0.0.1:1/api/v1");
+      expect(results.find((r) => r.kind === "graphql")).toBeUndefined();
+    }),
+  );
+});

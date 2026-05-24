@@ -1,0 +1,38 @@
+{
+  "name": "relay",
+  "version": "1.4.29",
+  "private": true,
+  "bin": {
+    "relay": "./bin/relay.ts"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./src/main.ts"
+  },
+  "scripts": {
+    "build": "bun run src/build.ts binary --single",
+    "build:all": "bun run src/build.ts binary",
+    "build:preview": "bun run src/build.ts preview",
+    "build:preview:tarball": "bun run src/build.ts preview-tarball",
+    "build:preview:wrapper": "bun run src/build.ts preview-wrapper",
+    "build:publish": "bun run src/build.ts publish",
+    "release:publish:dry-run": "bun run src/release.ts --dry-run",
+    "release:publish": "bun run src/release.ts",
+    "typecheck": "tsgo --noEmit",
+    "typecheck:slow": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@effect/platform-bun": "catalog:",
+    "@relay-sh/api": "workspace:*",
+    "@relay-sh/integrations-registry": "workspace:*",
+    "@relay-sh/local": "workspace:*",
+    "@relay-sh/runtime-quickjs": "workspace:*",
+    "@jitl/quickjs-wasmfile-release-sync": "catalog:",
+    "effect": "catalog:",
+    "quickjs-emscripten": "catalog:"
+  },
+  "devDependencies": {
+    "bun-types": "catalog:",
+    "typescript": "catalog:"
+  }
+}

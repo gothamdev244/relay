@@ -1,0 +1,80 @@
+{
+  "name": "@relay-sh/plugin-workos-vault",
+  "version": "0.0.2",
+  "homepage": "https://github.com/gothamdev244/relay/tree/main/packages/plugins/workos-vault",
+  "bugs": {
+    "url": "https://github.com/gothamdev244/relay/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gothamdev244/relay.git",
+    "directory": "packages/plugins/workos-vault"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./src/sdk/index.ts",
+    "./promise": "./src/promise.ts",
+    "./react": "./src/react/index.ts",
+    "./client": "./src/react/plugin-client.tsx",
+    "./testing": "./src/sdk/testing.ts"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "import": {
+          "types": "./dist/promise.d.ts",
+          "default": "./dist/index.js"
+        }
+      },
+      "./core": {
+        "import": {
+          "types": "./dist/sdk/index.d.ts",
+          "default": "./dist/core.js"
+        }
+      },
+      "./testing": {
+        "import": {
+          "types": "./dist/sdk/testing.d.ts",
+          "default": "./dist/testing.js"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup && (tsc --declaration --emitDeclarationOnly --outDir dist --rootDir src || true)",
+    "typecheck": "tsgo --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck:slow": "bunx tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@relay-sh/sdk": "workspace:*",
+    "@workos-inc/node": "^8.11.1",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@effect/vitest": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "react": "catalog:",
+    "tsup": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@relay-sh/react": "workspace:*",
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "@relay-sh/react": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  }
+}

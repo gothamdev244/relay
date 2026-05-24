@@ -1,0 +1,104 @@
+{
+  "name": "@relay-sh/sdk",
+  "version": "1.4.29",
+  "homepage": "https://github.com/gothamdev244/relay/tree/main/packages/core/sdk",
+  "bugs": {
+    "url": "https://github.com/gothamdev244/relay/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gothamdev244/relay.git",
+    "directory": "packages/core/sdk"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./core": "./src/index.ts",
+    "./shared": "./src/shared.ts",
+    "./promise": "./src/promise.ts",
+    "./client": "./src/client.ts",
+    "./testing": "./src/testing.ts"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "import": {
+          "types": "./dist/promise.d.ts",
+          "default": "./dist/index.js"
+        }
+      },
+      "./core": {
+        "import": {
+          "types": "./dist/index.d.ts",
+          "default": "./dist/core.js"
+        }
+      },
+      "./shared": {
+        "import": {
+          "types": "./dist/shared.d.ts",
+          "default": "./dist/shared.js"
+        }
+      },
+      "./client": {
+        "import": {
+          "types": "./dist/client.d.ts",
+          "default": "./dist/client.js"
+        }
+      },
+      "./testing": {
+        "import": {
+          "types": "./dist/testing.d.ts",
+          "default": "./dist/testing.js"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup && (tsc --declaration --emitDeclarationOnly --outDir dist --rootDir src || true)",
+    "typecheck": "tsgo --noEmit",
+    "test": "vitest run",
+    "typecheck:slow": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@standard-schema/spec": "^1.1.0",
+    "effect": "catalog:",
+    "fractional-indexing": "^3.2.0",
+    "fumadb": "workspace:*",
+    "oauth4webapi": "^3.8.5"
+  },
+  "devDependencies": {
+    "@effect/atom-react": "catalog:",
+    "@effect/platform-node": "catalog:",
+    "@effect/vitest": "catalog:",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "better-sqlite3": "^12.9.0",
+    "drizzle-orm": "catalog:",
+    "react": "catalog:",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@effect/atom-react": "catalog:",
+    "@effect/platform-node": "catalog:",
+    "react": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@effect/platform-node": {
+      "optional": true
+    },
+    "@effect/atom-react": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  }
+}

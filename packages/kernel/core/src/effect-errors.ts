@@ -1,0 +1,21 @@
+import * as Data from "effect/Data";
+
+export class KernelCoreEffectError extends Data.TaggedError("KernelCoreEffectError")<{
+  readonly module: string;
+  readonly message: string;
+  readonly cause?: unknown;
+}> {}
+
+/**
+ * Default failure type for any `CodeRelay.execute` implementation —
+ * surfaces sandbox-level defects (isolate crash, module load failure,
+ * worker loader error) as a typed error so callers can handle them
+ * structurally instead of untyped `unknown`. Runtimes that want a
+ * narrower error shape can define their own `Data.TaggedError` subclass
+ * and parameterize `CodeRelay<MyError>`.
+ */
+export class CodeExecutionError extends Data.TaggedError("CodeExecutionError")<{
+  readonly runtime: string;
+  readonly message: string;
+  readonly cause?: unknown;
+}> {}

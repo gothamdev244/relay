@@ -1,0 +1,56 @@
+{
+  "name": "@relay-sh/cli",
+  "version": "0.2.1",
+  "description": "CLI for the relay SDK — schema generation, migrations",
+  "homepage": "https://github.com/gothamdev244/relay/tree/main/packages/core/cli",
+  "bugs": {
+    "url": "https://github.com/gothamdev244/relay/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gothamdev244/relay.git",
+    "directory": "packages/core/cli"
+  },
+  "bin": {
+    "relay-sdk": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "import": {
+          "types": "./dist/index.d.ts",
+          "default": "./dist/index.js"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup && (tsc --declaration --emitDeclarationOnly --outDir dist --rootDir src || true)",
+    "dev": "node --import jiti/register src/index.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@relay-sh/sdk": "workspace:*",
+    "commander": "^12.1.0",
+    "effect": "catalog:",
+    "fumadb": "workspace:*",
+    "jiti": "^2.6.1"
+  },
+  "devDependencies": {
+    "@effect/vitest": "catalog:",
+    "@types/node": "catalog:",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "^4.1.4"
+  }
+}

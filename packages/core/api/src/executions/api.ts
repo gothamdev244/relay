@@ -1,0 +1,69 @@
+import { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi";
+import { Schema } from "effect";
+
+import { InternalError } from "@relay-sh/sdk/shared";
+
+// ---------------------------------------------------------------------------
+// Schemas
+// ---------------------------------------------------------------------------
+
+const ExecuteRequest = Schema.Struct({
+  code: Schema.String,
+});
+
+const CompletedResult = Schema.Struct({
+  status: Schema.Literal("completed"),
+  text: Schema.String,
+  structured: Schema.Unknown,
+  isError: Schema.Boolean,
+});
+
+const PausedResult = Schema.Struct({
+  status: Schema.Literal("paused"),
+  text: Schema.String,
+  structured: Schema.Unknown,
+});
+
+const ExecuteResponse = Schema.Union([CompletedResult, PausedResult]);
+
+const ResumeRequest = Schema.Struct({
+  action: Schema.Literals(["accept", "decline", "cancel"]),
+  content: Schema.optional(Schema.Unknown),
+});
+
+const ResumeResponse = Schema.Struct({
+  text: Schema.String,
+  structured: Schema.Unknown,
+  isError: Schema.Boolean,
+});
+
+const ExecutionNotFoundError = Schema.TaggedStruct("ExecutionNotFoundError", {
+  executionId: Schema.String,
+}).annotate({ httpApiStatus: 404 });
+
+// ---------------------------------------------------------------------------
+// Params
+// ---------------------------------------------------------------------------
+
+const ExecutionParams = { executionId: Schema.String };
+
+// ---------------------------------------------------------------------------
+// Group
+// ---------------------------------------------------------------------------
+
+export const ExecutionsApi = HttpApiGroup.make("executions")
+  .add(
+    HttpApiEndpoint.post("execute", "/executions", {
+      payload: ExecuteRequest,
+      success: ExecuteResponse,
+      error: InternalError,
+    }),
+  )
+  .add(
+    HttpApiEndpoint.post("resume", "/executions/:executionId/resume", {
+      params: ExecutionParams,
+      payload: ResumeRequest,
+      success: ResumeResponse,
+      error: [InternalError, ExecutionNotFoundError],
+    }),
+  );

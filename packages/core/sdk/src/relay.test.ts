@@ -1,0 +1,314 @@
+import { describe, expect, it } from "@effect/vitest";
+import { Data, Effect } from "effect";
+import { FetchHttpClient } from "effect/unstable/http";
+
+import { scopedRelayTable, textColumn } from "./core-schema";
+import { createRelay } from "./relay";
+import { ScopeId } from "./ids";
+import { definePlugin } from "./plugin";
+import { Scope } from "./scope";
+import { SourceDetectionResult } from "./types";
+import { makeTestConfig, makeTestRelay } from "./testing";
+
+class TestPluginError extends Data.TaggedError("TestPluginError")<{
+  readonly message: string;
+}> {}
+
+const testScope = Scope.make({
+  id: ScopeId.make("test-scope"),
+  name: "test",
+  createdAt: new Date(),
+});
+
+const txSchema = {
+  relay_tx_item: scopedRelayTable("relay_tx_item", {
+    value: textColumn("value"),
+  }),
+};
+
+type TxItemRow = {
+  readonly id: string;
+  readonly scope_id: string;
+  readonly value: string;
+};
+
+const txPlugin = definePlugin(() => ({
+  id: "tx" as const,
+  schema: txSchema,
+  storage: ({ fuma }) => ({
+    create: (row: TxItemRow) =>
+      fuma.use("tx.item.create", (db) => db.create("relay_tx_item", row)).pipe(Effect.asVoid),
+    list: () =>
+      fuma.use("tx.item.list", (db) =>
+        db.findMany("relay_tx_item", {
+          select: ["id", "scope_id", "value"],
+          orderBy: ["id", "asc"],
+        }),
+      ),
+  }),
+  extension: (ctx) => ({
+    seed: (id: string, value: string, scope = String(ctx.scopes[0]!.id)) =>
+      ctx.storage.create({ id, scope_id: scope, value }),
+    list: () => ctx.storage.list(),
+    failAfterPluginAndCoreWrites: () =>
+      ctx.transaction(
+        Effect.gen(function* () {
+          const scope = String(ctx.scopes[0]!.id);
+          yield* ctx.storage.create({
+            id: "tx-row",
+            scope_id: scope,
+            value: "created-before-failure",
+          });
+          yield* ctx.core.sources.register({
+            id: "tx-source",
+            scope,
+            kind: "test",
+            name: "Tx Source",
+            tools: [{ name: "run", description: "run" }],
+          });
+          return yield* new TestPluginError({ message: "rollback" });
+        }),
+      ),
+    catchDuplicateCreate: () =>
+      Effect.gen(function* () {
+        const scope = String(ctx.scopes[0]!.id);
+        yield* ctx.storage.create({ id: "dup", scope_id: scope, value: "first" });
+        return yield* ctx.storage.create({ id: "dup", scope_id: scope, value: "second" }).pipe(
+          Effect.as({ caught: false as const, model: null as string | null }),
+          Effect.catchTag("UniqueViolationError", (error) =>
+            Effect.succeed({ caught: true as const, model: error.model ?? null }),
+          ),
+        );
+      }),
+  }),
+}))();
+
+const detector = (id: string, confidence: SourceDetectionResult["confidence"]) =>
+  definePlugin(() => ({
+    id,
+    storage: () => ({}),
+    detect: () =>
+      Effect.succeed(
+        SourceDetectionResult.make({
+          kind: id,
+          confidence,
+          endpoint: `https://example.com/${id}`,
+          name: id,
+          namespace: id,
+        }),
+      ),
+  }))();
+
+const schemaProbePlugin = definePlugin(() => ({
+  id: "schemaProbe" as const,
+  storage: () => ({}),
+  extension: (ctx) => ({
+    registerSource: () =>
+      ctx.transaction(
+        Effect.gen(function* () {
+          const scope = String(ctx.scopes[0]!.id);
+          yield* ctx.core.sources.register({
+            id: "schema-source",
+            scope,
+            kind: "schema",
+            name: "Schema Source",
+            tools: [
+              {
+                name: "inspect",
+                description: "inspect",
+                inputSchema: {
+                  type: "object",
+                  properties: {
+                    pet: { $ref: "#/$defs/Pet" },
+                  },
+                  required: ["pet"],
+                },
+                outputSchema: { $ref: "#/$defs/Owner" },
+              },
+            ],
+          });
+          yield* ctx.core.definitions.register({
+            sourceId: "schema-source",
+            scope,
+            definitions: {
+              Pet: {
+                anyOf: [{ $ref: "#/$defs/Dog" }, { $ref: "#/$defs/Cat" }],
+              },
+              Dog: {
+                type: "object",
+                properties: {
+                  collar: { $ref: "#/$defs/Collar" },
+                },
+              },
+              Cat: {
+                type: "object",
+                properties: {
+                  lives: { type: "number" },
+                },
+              },
+              Collar: {
+                type: "object",
+                properties: {
+                  id: { type: "string" },
+                },
+              },
+              Owner: {
+                type: "object",
+                properties: {
+                  pet: { $ref: "#/$defs/Pet" },
+                },
+              },
+              Unused: {
+                type: "object",
+                properties: {
+                  value: { type: "string" },
+                },
+              },
+            },
+          });
+        }),
+      ),
+  }),
+}))();
+
+describe("createRelay", () => {
+  it.effect("rolls back plugin and core writes from ctx.transaction failures", () =>
+    Effect.gen(function* () {
+      const relay = yield* makeTestRelay({ plugins: [txPlugin] as const });
+
+      const error = yield* relay.tx.failAfterPluginAndCoreWrites().pipe(Effect.flip);
+
+      expect(error).toMatchObject({ _tag: "TestPluginError", message: "rollback" });
+      expect(yield* relay.tx.list()).toEqual([]);
+      expect(yield* relay.sources.list()).toEqual([]);
+      expect(yield* relay.tools.list()).toEqual([]);
+    }),
+  );
+
+  it.effect("keeps FumaDB unique violations catchable inside plugin code", () =>
+    Effect.gen(function* () {
+      const relay = yield* makeTestRelay({ plugins: [txPlugin] as const });
+
+      const result = yield* relay.tx.catchDuplicateCreate();
+
+      expect(result.caught).toBe(true);
+      expect(result.model).toContain("tx.item.create");
+    }),
+  );
+
+  it.effect("runs plugin and database close hooks", () =>
+    Effect.gen(function* () {
+      let pluginClosed = false;
+      let dbClosed = false;
+      const closablePlugin = definePlugin(() => ({
+        id: "closable" as const,
+        storage: () => ({}),
+        close: () =>
+          Effect.sync(() => {
+            pluginClosed = true;
+          }),
+      }));
+      const config = makeTestConfig({ plugins: [closablePlugin()] as const });
+      const relay = yield* createRelay({
+        ...config,
+        db: {
+          db: config.db,
+          close: () =>
+            Effect.sync(() => {
+              dbClosed = true;
+            }),
+        },
+        onElicitation: "accept-all",
+      });
+
+      yield* relay.close();
+
+      expect(pluginClosed).toBe(true);
+      expect(dbClosed).toBe(true);
+      yield* Effect.promise(() => config.testDb.close());
+    }),
+  );
+
+  it.effect("orders source detection results by confidence and applies configured bounds", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay({
+        ...makeTestConfig({
+          plugins: [detector("low", "low"), detector("high", "high"), detector("medium", "medium")],
+        }),
+        sourceDetection: { maxDetectors: 2, maxResults: 1 },
+        onElicitation: "accept-all",
+      });
+
+      const results = yield* relay.sources.detect("https://example.com/source");
+
+      expect(results.map((result) => result.kind)).toEqual(["high"]);
+    }),
+  );
+
+  it.effect("applies hosted outbound policy before source detection plugins run", () =>
+    Effect.gen(function* () {
+      let called = false;
+      const hostedDetector = definePlugin(() => ({
+        id: "hosted-detector" as const,
+        storage: () => ({}),
+        detect: () =>
+          Effect.sync(() => {
+            called = true;
+            return SourceDetectionResult.make({
+              kind: "hosted-detector",
+              confidence: "high",
+              endpoint: "http://127.0.0.1/source",
+              name: "hosted detector",
+              namespace: "hosted_detector",
+            });
+          }),
+      }));
+      const relay = yield* createRelay({
+        scopes: [testScope],
+        plugins: [hostedDetector()] as const,
+        httpClientLayer: FetchHttpClient.layer,
+        onElicitation: "accept-all",
+      });
+
+      const results = yield* relay.sources.detect("http://127.0.0.1/source");
+
+      expect(results).toEqual([]);
+      expect(called).toBe(false);
+    }),
+  );
+
+  it.effect("returns schema roots with shared reachable definitions", () =>
+    Effect.gen(function* () {
+      const relay = yield* makeTestRelay({ plugins: [schemaProbePlugin] as const });
+
+      yield* relay.schemaProbe.registerSource();
+
+      const schema = yield* relay.tools.schema("schema-source.inspect");
+
+      expect(schema?.inputSchema).toEqual({
+        type: "object",
+        properties: {
+          pet: { $ref: "#/$defs/Pet" },
+        },
+        required: ["pet"],
+      });
+      expect(schema?.outputSchema).toEqual({ $ref: "#/$defs/Owner" });
+      expect(schema?.schemaDefinitions).toEqual({
+        Cat: expect.any(Object),
+        Collar: expect.any(Object),
+        Dog: expect.any(Object),
+        Owner: expect.any(Object),
+        Pet: expect.any(Object),
+      });
+      expect(schema?.schemaDefinitions).not.toHaveProperty("Unused");
+      expect(schema?.inputTypeScript).toContain("pet: Pet");
+      expect(schema?.outputTypeScript).toBe("Owner");
+      expect(schema?.typeScriptDefinitions).toEqual(
+        expect.objectContaining({
+          Pet: expect.any(String),
+          Owner: expect.any(String),
+        }),
+      );
+    }),
+  );
+});

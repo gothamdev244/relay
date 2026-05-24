@@ -1,0 +1,96 @@
+import { describe, it, expect } from "@effect/vitest";
+import { Effect } from "effect";
+import {
+  RemoveSecretInput,
+  ScopeId,
+  SecretId,
+  SetSecretInput,
+  createRelay,
+} from "@relay-sh/sdk";
+import { makeTestConfig } from "@relay-sh/sdk/testing";
+import { keychainPlugin } from "./index";
+
+describe("keychain plugin", () => {
+  it.effect("exposes keychain metadata and registers a provider when reachable", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(
+        makeTestConfig({
+          plugins: [keychainPlugin()] as const,
+        }),
+      );
+
+      expect(relay.keychain.displayName).toBeTypeOf("string");
+      expect(relay.keychain.isSupported).toBeTypeOf("boolean");
+
+      const providers = yield* relay.secrets.providers();
+      expect(providers.filter((provider) => provider === "keychain").length).toBeLessThanOrEqual(1);
+    }),
+  );
+
+  // The tests below exercise the real system keychain.
+  // They no-op when the platform package loads but no keychain service is reachable.
+
+  it.effect.skipIf(!!process.env.CI)("stores and checks secret via system keychain", () =>
+    Effect.gen(function* () {
+      const testId = SecretId.make(`test-keychain-${Date.now()}`);
+      const relay = yield* createRelay(
+        makeTestConfig({
+          plugins: [keychainPlugin({ serviceName: "relay-test" })] as const,
+        }),
+      );
+      const providers = yield* relay.secrets.providers();
+      if (!providers.includes("keychain")) {
+        return;
+      }
+
+      yield* Effect.gen(function* () {
+        // Store through SDK, pinned to keychain provider
+        yield* relay.secrets.set(
+          SetSecretInput.make({
+            id: testId,
+            scope: ScopeId.make("test-scope"),
+            name: "Test Secret",
+            value: "keychain-test-value",
+            provider: "keychain",
+          }),
+        );
+
+        // Plugin can check if it exists in the keychain
+        const exists = yield* relay.keychain.has(testId);
+        expect(exists).toBe(true);
+
+        // SDK routes through the core secret table → pinned provider
+        const resolved = yield* relay.secrets.get(testId);
+        expect(resolved).toBe("keychain-test-value");
+      }).pipe(
+        Effect.ensuring(
+          relay.secrets
+            .remove(
+              RemoveSecretInput.make({
+                id: testId,
+                targetScope: ScopeId.make("test-scope"),
+              }),
+            )
+            .pipe(Effect.orElseSucceed(() => undefined)),
+        ),
+      );
+    }),
+  );
+
+  it.effect.skipIf(!!process.env.CI)("has returns false for missing secret", () =>
+    Effect.gen(function* () {
+      const relay = yield* createRelay(
+        makeTestConfig({
+          plugins: [keychainPlugin({ serviceName: "relay-test" })] as const,
+        }),
+      );
+      const providers = yield* relay.secrets.providers();
+      if (!providers.includes("keychain")) {
+        return;
+      }
+
+      const exists = yield* relay.keychain.has("nonexistent-secret");
+      expect(exists).toBe(false);
+    }),
+  );
+});
