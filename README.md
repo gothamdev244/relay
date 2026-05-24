@@ -17,6 +17,10 @@
 
 ---
 
+<p align="center">
+  <img src="assets/demo.gif" alt="Relay CLI Demo" width="600" />
+</p>
+
 Relay is an open-source runtime that unifies your integrations — OpenAPI, GraphQL, MCP, and Google Discovery — into a single tool catalog. Connect once, use everywhere: from Claude Code and Cursor to custom agents built with the SDK.
 
 ## Architecture
