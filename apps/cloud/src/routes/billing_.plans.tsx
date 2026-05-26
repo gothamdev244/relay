@@ -58,7 +58,7 @@ const ENTERPRISE_FEATURES = [
   "Security reviews, DPA & SOC 2 on request",
 ];
 
-const ENTERPRISE_MAILTO = `mailto:rhys@relay.sh?subject=${encodeURIComponent(
+const ENTERPRISE_MAILTO = `mailto:support@relay.sh?subject=${encodeURIComponent(
   "Relay Enterprise inquiry",
 )}&body=${encodeURIComponent(
   [
@@ -327,8 +327,8 @@ function SlackContactCta() {
               <DialogTitle>Get in touch on Slack</DialogTitle>
               <DialogDescription>
                 Add{" "}
-                <a className="font-medium text-foreground underline" href="mailto:rhys@relay.sh">
-                  rhys@relay.sh
+                <a className="font-medium text-foreground underline" href="mailto:support@relay.sh">
+                  support@relay.sh
                 </a>{" "}
                 on Slack Connect to get in touch.
               </DialogDescription>
@@ -340,7 +340,7 @@ function SlackContactCta() {
                 </Button>
               </DialogClose>
               <Button asChild>
-                <a href="mailto:rhys@relay.sh?subject=Relay%20Slack%20invite">
+                <a href="mailto:support@relay.sh?subject=Relay%20Slack%20invite">
                   Email for invite
                 </a>
               </Button>
@@ -351,7 +351,7 @@ function SlackContactCta() {
           ·
         </span>
         <a
-          href="mailto:rhys@relay.sh?subject=Relay%20question"
+          href="mailto:support@relay.sh?subject=Relay%20question"
           className="inline-flex items-center gap-1.5 text-foreground hover:text-primary transition-colors"
         >
           <MailIcon className="size-4" />

@@ -103,7 +103,7 @@ PR ref:
 
 Don't `Thanks` maintainers, bots, or the repo owner. The lint script
 (`bun run lint:release-notes`) rejects `Thanks @claude`,
-`Thanks @rhyssullivan`, `Thanks @github-actions`, etc. — the full list
+`Thanks @gothamdev244`, `Thanks @github-actions`, etc. — the full list
 is in `scripts/check-release-notes.ts`. Run it before pushing release
 notes.
 

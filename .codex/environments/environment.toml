@@ -4,7 +4,7 @@ name = "relay"
 
 [setup]
 script = '''
-source_root="/home/rhys/executor"
+source_root="/home/user/relay"
 reference_source="$source_root/.reference"
 
 if [ -d "$reference_source" ]; then

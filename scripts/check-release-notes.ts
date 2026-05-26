@@ -26,8 +26,7 @@ const FORBIDDEN_THANKS_HANDLES = [
   "github-actions",
   "dependabot",
   "renovate",
-  "rhyssullivan",
-  "rhys-sullivan",
+  "gothamdev244",
 ];
 
 const HANDLE_PATTERN = FORBIDDEN_THANKS_HANDLES.join("|");

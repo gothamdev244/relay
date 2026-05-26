@@ -77,7 +77,7 @@ External contributor bullets end with `Thanks @<user> (#PR)`:
 - OAuth2 client-credentials flow end-to-end. Thanks @octocat (#456)
 ```
 
-Do not `Thanks` maintainers, bots, or the repo owner — the lint script rejects `@claude`, `@anthropic`, `@github-actions`, `@dependabot`, `@renovate`, `@rhyssullivan`, `@rhys-sullivan`. Run `bun run lint:release-notes` before pushing notes.
+Do not `Thanks` maintainers, bots, or the repo owner — the lint script rejects `@claude`, `@anthropic`, `@github-actions`, `@dependabot`, `@renovate`, `@gothamdev244`. Run `bun run lint:release-notes` before pushing notes.
 
 ### When drafting from `git log`
 
@@ -104,12 +104,12 @@ to clear it.
 ## Beta release flow
 
 ```
-git checkout -b rs/beta-v<next>-start
+git checkout -b beta-v<next>-start
 bun run release:beta:start                 # creates .changeset/pre.json
 # write .changeset/relay-<next>-beta.md (patch frontmatter by default)
 # write apps/cli/release-notes/next.md     (curated notes)
 git add ... && git commit                  # ONLY when owner says commit
-git push -u origin rs/beta-v<next>-start
+git push -u origin beta-v<next>-start
 # Open PR -> merge -> release.yml opens "Version Packages (beta)" PR -> merge to publish
 ```
 
@@ -125,7 +125,7 @@ Identical to beta except skip `release:beta:start`/`stop`. Changesets produce a 
 
 - **Never commit until the owner explicitly says so.** Set everything up in the working tree, run `git status`, and stop.
 - **No AI / Claude / Anthropic / Co-Authored-By trailers** in commits, commit messages, PRs, or any generated file. This is in `CLAUDE.md` — do not violate.
-- **Branch naming**: `rs/<short-topic>` for Rhys's branches. Beta-start branch: `rs/beta-v<version>-start`.
+- **Branch naming**: `feat/<short-topic>` for feature branches. Beta-start branch: `beta-v<version>-start`.
 - **Remote**: `origin` = `https://github.com/gothamdev244/relay.git`. If another remote appears (e.g. a fork remote), ask whether to remove it.
 - **Dirty working tree**: if there are uncommitted changes when starting a release, ask whether to include them, stash them, or commit separately first. Don't sweep them into the release commit silently.
 - **Don't estimate time** — code is cheap to write. Focus on what to do, not how long it takes.

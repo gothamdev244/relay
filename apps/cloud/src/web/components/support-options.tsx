@@ -15,7 +15,7 @@ const supportLinks = [
     href: "https://github.com/gothamdev244/relay/issues",
     icon: GitHubMark,
   },
-  { label: "Email", href: "mailto:rhys@relay.sh?subject=Relay%20support", icon: MailMark },
+  { label: "Email", href: "mailto:support@relay.sh?subject=Relay%20support", icon: MailMark },
 ] as const;
 
 export function SupportOptions() {
@@ -32,7 +32,7 @@ export function SupportOptions() {
           <PopoverHeader>
             <PopoverTitle>Slack Connect</PopoverTitle>
             <PopoverDescription>
-              Invite <span className="font-medium text-foreground">rhys@relay.sh</span> to Slack
+              Invite <span className="font-medium text-foreground">support@relay.sh</span> to Slack
               Connect.
             </PopoverDescription>
           </PopoverHeader>
