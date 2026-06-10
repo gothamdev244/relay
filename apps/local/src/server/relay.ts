@@ -253,12 +253,23 @@ const removeSqliteFileSet = (path: string) => {
 };
 
 const moveSqliteFileSet = (source: string, target: string) => {
-  fs.renameSync(source, target);
-  for (const suffix of ["-wal", "-shm"]) {
-    if (fs.existsSync(`${source}${suffix}`)) {
-      fs.renameSync(`${source}${suffix}`, `${target}${suffix}`);
-    }
+  // Copy + remove instead of rename: drivers can keep prepared statements
+  // alive past `close()` (sqlite3_close_v2 zombie connections), so the old
+  // inode may still be mmap'd. Renaming that inode into place makes the next
+  // WAL open fail with SQLITE_IOERR_VNODE on macOS; copying gives the target
+  // a fresh inode. The `-shm` file is transient shared memory — SQLite
+  // rebuilds it on open — so it is removed rather than carried over.
+  fs.copyFileSync(source, target);
+  fs.rmSync(source, { force: true });
+  if (fs.existsSync(`${source}-wal`)) {
+    fs.copyFileSync(`${source}-wal`, `${target}-wal`);
+    fs.rmSync(`${source}-wal`, { force: true });
+  } else {
+    // No source WAL: drop any stale target WAL so it cannot shadow the copy.
+    fs.rmSync(`${target}-wal`, { force: true });
   }
+  fs.rmSync(`${source}-shm`, { force: true });
+  fs.rmSync(`${target}-shm`, { force: true });
 };
 
 const moveSqliteFileSetToBackup = (path: string): string => {
