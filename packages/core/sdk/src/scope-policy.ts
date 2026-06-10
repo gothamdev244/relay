@@ -40,9 +40,7 @@ export function assertRelayScopePolicyTable(table: AnyTable, tableKey?: string):
     return;
   }
 
-  const unscopedPolicy = table.policies.find(
-    (policy) => policy.name === relayUnscopedPolicyName,
-  );
+  const unscopedPolicy = table.policies.find((policy) => policy.name === relayUnscopedPolicyName);
   if (unscopedPolicy && unscopedRelayTables.has(tableName)) return;
 
   scopePolicyViolation(`Storage table "${tableName}" is missing an relay scope policy.`);

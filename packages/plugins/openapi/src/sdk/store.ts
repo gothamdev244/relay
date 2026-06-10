@@ -86,17 +86,14 @@ export const openapiSchema = {
     slot_key: nullableTextColumn("slot_key"),
     prefix: nullableTextColumn("prefix"),
   }),
-  openapi_source_spec_fetch_query_param: scopedRelayTable(
-    "openapi_source_spec_fetch_query_param",
-    {
-      source_id: textColumn("source_id"),
-      name: textColumn("name"),
-      kind: textColumn("kind"),
-      text_value: nullableTextColumn("text_value"),
-      slot_key: nullableTextColumn("slot_key"),
-      prefix: nullableTextColumn("prefix"),
-    },
-  ),
+  openapi_source_spec_fetch_query_param: scopedRelayTable("openapi_source_spec_fetch_query_param", {
+    source_id: textColumn("source_id"),
+    name: textColumn("name"),
+    kind: textColumn("kind"),
+    text_value: nullableTextColumn("text_value"),
+    slot_key: nullableTextColumn("slot_key"),
+    prefix: nullableTextColumn("prefix"),
+  }),
 } satisfies FumaTables;
 
 export type OpenapiSchema = typeof openapiSchema;

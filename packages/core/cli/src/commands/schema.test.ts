@@ -11,10 +11,7 @@ describe("schema generate", () => {
       Effect.promise(() => mkdtemp(join(tmpdir(), "relay-cli-schema-"))),
       (cwd) =>
         Effect.promise(async () => {
-          await writeFile(
-            join(cwd, "relay.config.js"),
-            "export default { plugins: () => [] };\n",
-          );
+          await writeFile(join(cwd, "relay.config.js"), "export default { plugins: () => [] };\n");
 
           await schema.parseAsync(
             [

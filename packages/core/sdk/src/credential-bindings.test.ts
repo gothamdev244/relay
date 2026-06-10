@@ -187,10 +187,7 @@ describe("credential bindings", () => {
         value: { kind: "secret", secretId: SecretId.make("api-token") },
       });
 
-      const workspaceRelay = yield* harness.create([
-        harness.scopes.workspace,
-        harness.scopes.org,
-      ]);
+      const workspaceRelay = yield* harness.create([harness.scopes.workspace, harness.scopes.org]);
       yield* setSecret(workspaceRelay, harness.scopes.workspace.id, "api-token", "sk-workspace");
       yield* workspaceRelay.credentialBindings.set({
         targetScope: harness.scopes.workspace.id,
@@ -223,10 +220,7 @@ describe("credential bindings", () => {
       const orgRelay = yield* harness.create([harness.scopes.org]);
       yield* orgRelay.credentialTest.registerSource(harness.scopes.org.id);
 
-      const userRelay = yield* harness.create([
-        harness.scopes.userWorkspaceA,
-        harness.scopes.org,
-      ]);
+      const userRelay = yield* harness.create([harness.scopes.userWorkspaceA, harness.scopes.org]);
       yield* setSecret(userRelay, harness.scopes.userWorkspaceA.id, "api-token", "sk-user-a");
 
       const error = yield* userRelay.credentialBindings
@@ -344,10 +338,7 @@ describe("credential bindings", () => {
   it.effect("rejects credential binding removals outside the active source scope stack", () =>
     Effect.gen(function* () {
       const harness = makeHarness();
-      const userRelay = yield* harness.create([
-        harness.scopes.userWorkspaceA,
-        harness.scopes.org,
-      ]);
+      const userRelay = yield* harness.create([harness.scopes.userWorkspaceA, harness.scopes.org]);
 
       const error = yield* userRelay.credentialBindings
         .remove({
@@ -366,10 +357,7 @@ describe("credential bindings", () => {
   it.effect("rejects credential binding removals for sources not visible at the given scope", () =>
     Effect.gen(function* () {
       const harness = makeHarness();
-      const userRelay = yield* harness.create([
-        harness.scopes.userWorkspaceA,
-        harness.scopes.org,
-      ]);
+      const userRelay = yield* harness.create([harness.scopes.userWorkspaceA, harness.scopes.org]);
 
       const error = yield* userRelay.credentialBindings
         .remove({
@@ -515,10 +503,7 @@ describe("credential bindings", () => {
       const orgRelay = yield* harness.create([harness.scopes.org]);
       yield* orgRelay.credentialTest.registerSource(harness.scopes.org.id);
 
-      const userRelay = yield* harness.create([
-        harness.scopes.userWorkspaceA,
-        harness.scopes.org,
-      ]);
+      const userRelay = yield* harness.create([harness.scopes.userWorkspaceA, harness.scopes.org]);
       yield* setSecret(userRelay, harness.scopes.userWorkspaceA.id, "old-token", "sk-old");
       yield* setSecret(userRelay, harness.scopes.userWorkspaceA.id, "new-token", "sk-new");
 
@@ -575,16 +560,8 @@ describe("credential bindings", () => {
       yield* orgRelay.credentialTest.registerSource(harness.scopes.org.id);
       yield* setSecret(orgRelay, harness.scopes.org.id, "shared-token-id", "sk-org");
 
-      const userRelay = yield* harness.create([
-        harness.scopes.userWorkspaceA,
-        harness.scopes.org,
-      ]);
-      yield* setSecret(
-        userRelay,
-        harness.scopes.userWorkspaceA.id,
-        "shared-token-id",
-        "sk-user-a",
-      );
+      const userRelay = yield* harness.create([harness.scopes.userWorkspaceA, harness.scopes.org]);
+      yield* setSecret(userRelay, harness.scopes.userWorkspaceA.id, "shared-token-id", "sk-user-a");
       yield* userRelay.credentialBindings.set({
         targetScope: harness.scopes.userWorkspaceA.id,
         pluginId: TEST_PLUGIN_ID,
@@ -616,10 +593,7 @@ describe("credential bindings", () => {
       yield* orgRelay.credentialTest.registerSource(harness.scopes.org.id);
       yield* setSecret(orgRelay, harness.scopes.org.id, "shared-token-id", "sk-org");
 
-      const userRelay = yield* harness.create([
-        harness.scopes.userWorkspaceA,
-        harness.scopes.org,
-      ]);
+      const userRelay = yield* harness.create([harness.scopes.userWorkspaceA, harness.scopes.org]);
 
       const binding = yield* userRelay.credentialBindings.set({
         targetScope: harness.scopes.userWorkspaceA.id,
@@ -700,16 +674,8 @@ describe("credential bindings", () => {
       const orgRelay = yield* harness.create([harness.scopes.org]);
       yield* orgRelay.credentialTest.registerSource(harness.scopes.org.id);
 
-      const userRelay = yield* harness.create([
-        harness.scopes.userWorkspaceA,
-        harness.scopes.org,
-      ]);
-      yield* setSecret(
-        userRelay,
-        harness.scopes.userWorkspaceA.id,
-        "personal-token",
-        "sk-user-a",
-      );
+      const userRelay = yield* harness.create([harness.scopes.userWorkspaceA, harness.scopes.org]);
+      yield* setSecret(userRelay, harness.scopes.userWorkspaceA.id, "personal-token", "sk-user-a");
 
       const result = yield* Effect.result(
         userRelay.credentialBindings.set({

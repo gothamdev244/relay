@@ -313,11 +313,7 @@ export {
 } from "./relay";
 
 // CLI / runtime config
-export {
-  defineRelayConfig,
-  type RelayCliConfig,
-  type RelayPluginsFactory,
-} from "./config";
+export { defineRelayConfig, type RelayCliConfig, type RelayPluginsFactory } from "./config";
 
 // JSON schema $ref helpers (used by openapi for $defs handling)
 export { hoistDefinitions, collectRefs, reattachDefs, normalizeRefs } from "./schema-refs";

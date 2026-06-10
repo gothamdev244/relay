@@ -19,7 +19,7 @@ import { Effect } from "effect";
 import postgres from "postgres";
 
 import * as cloudSchema from "./schema";
-import * as executorSchema from "./relay-schema";
+import * as relaySchema from "./relay-schema";
 import { combinedSchema } from "./db";
 
 describe("combinedSchema", () => {

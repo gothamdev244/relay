@@ -20,11 +20,11 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import type { PgDatabase } from "drizzle-orm/pg-core";
 import postgres, { type Sql } from "postgres";
 import * as cloudSchema from "./schema";
-import * as executorSchema from "./relay-schema";
+import * as relaySchema from "./relay-schema";
 
 // Exported so every drizzle() call in the cloud app shares one schema
 // object. Historically `mcp-session.ts` built its own and forgot to spread
-// `executorSchema`, producing runtime "unknown model source" errors that
+// `relaySchema`, producing runtime "unknown model source" errors that
 // only surfaced in prod. See apps/cloud/src/services/db.schema.test.ts.
 export const combinedSchema = { ...cloudSchema, ...relaySchema };
 

@@ -8,8 +8,8 @@
     "ai",
     "automation",
     "cli",
-    "relay",
-    "local-first"
+    "local-first",
+    "relay"
   ],
   "homepage": "https://github.com/gothamdev244/relay",
   "bugs": {

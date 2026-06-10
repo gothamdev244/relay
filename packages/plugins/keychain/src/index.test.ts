@@ -1,12 +1,6 @@
 import { describe, it, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import {
-  RemoveSecretInput,
-  ScopeId,
-  SecretId,
-  SetSecretInput,
-  createRelay,
-} from "@relay-sh/sdk";
+import { RemoveSecretInput, ScopeId, SecretId, SetSecretInput, createRelay } from "@relay-sh/sdk";
 import { makeTestConfig } from "@relay-sh/sdk/testing";
 import { keychainPlugin } from "./index";
 

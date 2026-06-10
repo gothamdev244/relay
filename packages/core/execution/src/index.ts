@@ -11,9 +11,4 @@ export {
 
 export { buildExecuteDescription } from "./description";
 export { ExecutionToolError } from "./errors";
-export {
-  makeRelayToolInvoker,
-  searchTools,
-  listRelaySources,
-  describeTool,
-} from "./tool-invoker";
+export { makeRelayToolInvoker, searchTools, listRelaySources, describeTool } from "./tool-invoker";

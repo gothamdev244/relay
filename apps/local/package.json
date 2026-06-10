@@ -21,6 +21,7 @@
   "dependencies": {
     "@effect/atom-react": "catalog:",
     "@effect/platform-node": "catalog:",
+    "@modelcontextprotocol/sdk": "^1.12.1",
     "@relay-sh/api": "workspace:*",
     "@relay-sh/app": "workspace:*",
     "@relay-sh/config": "workspace:*",
@@ -40,7 +41,6 @@
     "@relay-sh/runtime-quickjs": "workspace:*",
     "@relay-sh/sdk": "workspace:*",
     "@relay-sh/vite-plugin": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.12.1",
     "@tanstack/react-router": "catalog:",
     "drizzle-orm": "catalog:",
     "effect": "catalog:",

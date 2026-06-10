@@ -2,10 +2,7 @@ import { Layer, ManagedRuntime } from "effect";
 import { FetchHttpClient } from "effect/unstable/http";
 import { NodeFileSystem } from "@effect/platform-node";
 
-import {
-  IntegrationsRegistry,
-  integrationsRegistryLayer,
-} from "@relay-sh/integrations-registry";
+import { IntegrationsRegistry, integrationsRegistryLayer } from "@relay-sh/integrations-registry";
 
 import { USER_AGENT } from "./installation";
 

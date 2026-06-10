@@ -105,11 +105,7 @@ describe("MCP connection pooling (regression)", () => {
         expect(sessionsAfterFirstInvoke).toBe(sessionsAfterAddSource + 1);
 
         for (let i = 2; i <= 5; i++) {
-          yield* relay.tools.invoke(
-            echo.id,
-            { value: String(i) },
-            { onElicitation: "accept-all" },
-          );
+          yield* relay.tools.invoke(echo.id, { value: String(i) }, { onElicitation: "accept-all" });
           // Cache must reuse the same MCP session for every subsequent
           // call. If this assertion fails the session DO is paying the
           // cold-handshake p99 (3.28s in prod) on every tool call.
@@ -174,19 +170,11 @@ describe("MCP connection pooling (regression)", () => {
 
       const sessionsAfterAddSource = server.sessionCount();
 
-      yield* relay.tools.invoke(
-        echoTools[0]!.id,
-        { value: "a" },
-        { onElicitation: "accept-all" },
-      );
+      yield* relay.tools.invoke(echoTools[0]!.id, { value: "a" }, { onElicitation: "accept-all" });
       const afterFirstInvoke = server.sessionCount();
       expect(afterFirstInvoke).toBe(sessionsAfterAddSource + 1);
 
-      yield* relay.tools.invoke(
-        echoTools[1]!.id,
-        { value: "b" },
-        { onElicitation: "accept-all" },
-      );
+      yield* relay.tools.invoke(echoTools[1]!.id, { value: "b" }, { onElicitation: "accept-all" });
       expect(server.sessionCount()).toBe(afterFirstInvoke + 1);
     }),
   );

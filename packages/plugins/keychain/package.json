@@ -44,8 +44,8 @@
     "typecheck:slow": "bunx tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@relay-sh/sdk": "workspace:*",
     "@napi-rs/keyring": "^1.2.0",
+    "@relay-sh/sdk": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {

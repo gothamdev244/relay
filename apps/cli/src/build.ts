@@ -32,8 +32,7 @@ const readMetadata = async () => {
   return {
     name: "relay",
     version: process.env.EXECUTOR_VERSION ?? cliPkg.version ?? rootPkg.version ?? "0.0.0",
-    description:
-      rootPkg.description ?? "Local AI relay with a CLI, local API server, and web UI.",
+    description: rootPkg.description ?? "Local AI relay with a CLI, local API server, and web UI.",
     keywords: rootPkg.keywords ?? [],
     homepage: rootPkg.homepage,
     bugs: rootPkg.bugs,
@@ -768,9 +767,9 @@ if (fs.existsSync(previewBinary)) {
 
 const pm = detectPackageManager();
 const reinstall = pm === "bun"
-  ? "bun install -g executor"
+  ? "bun install -g relay"
   : pm === "npm"
-    ? "npm install -g executor"
+    ? "npm install -g relay"
     : "reinstall relay";
 console.error(
   "relay: could not locate a platform binary for " + os.platform() + "-" + os.arch() + ".\\n" +

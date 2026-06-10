@@ -1,8 +1,4 @@
-import {
-  ScopeId,
-  type CredentialBindingValue,
-  type SecretBackedValue,
-} from "@relay-sh/sdk/shared";
+import { ScopeId, type CredentialBindingValue, type SecretBackedValue } from "@relay-sh/sdk/shared";
 
 import type { HttpCredentialsState, QueryParamState } from "./http-credentials";
 import { headerValueToState, type HeaderState } from "./secret-header-auth";

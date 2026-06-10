@@ -5,7 +5,7 @@ import { CodeBlock } from "@relay-sh/react/components/code-block";
 import { CopyButton } from "@relay-sh/react/components/copy-button";
 
 const buildInstallCommand = (endpoint: string): string =>
-  `npx add-mcp ${endpoint} --transport http --name executor`;
+  `npx add-mcp ${endpoint} --transport http --name relay`;
 
 export const SetupMcpPage = () => {
   const navigate = useNavigate();
@@ -27,8 +27,8 @@ export const SetupMcpPage = () => {
           </p>
           <h1 className="font-serif text-3xl">Connect your MCP client</h1>
           <p className="text-sm text-muted-foreground">
-            Relay exposes your sources, secrets, and tools to any MCP-compatible agent. Copy the
-            URL into your client, or run the install command.
+            Relay exposes your sources, secrets, and tools to any MCP-compatible agent. Copy the URL
+            into your client, or run the install command.
           </p>
         </header>
 

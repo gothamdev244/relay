@@ -18,12 +18,7 @@ import {
   HttpApiSchema,
 } from "effect/unstable/httpapi";
 
-import {
-  createRelay,
-  definePlugin,
-  type InvokeOptions,
-  type SecretProvider,
-} from "@relay-sh/sdk";
+import { createRelay, definePlugin, type InvokeOptions, type SecretProvider } from "@relay-sh/sdk";
 import { makeTestWorkspaceLayer, TestWorkspace } from "@relay-sh/sdk/testing";
 import {
   addOpenApiTestSource,

@@ -2,12 +2,7 @@ import { useMemo, useState } from "react";
 import { useAtomValue } from "@effect/atom-react";
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult";
 import { toolSchemaAtom } from "../api/atoms";
-import {
-  ScopeId,
-  ToolId,
-  type EffectivePolicy,
-  type ToolPolicyAction,
-} from "@relay-sh/sdk/shared";
+import { ScopeId, ToolId, type EffectivePolicy, type ToolPolicyAction } from "@relay-sh/sdk/shared";
 import { Badge } from "./badge";
 import { Button } from "./button";
 import {

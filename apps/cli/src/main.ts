@@ -685,9 +685,7 @@ const withStdoutReroutedToStderr = async <A>(body: () => Promise<A>): Promise<A>
 const runStdioMcpSession = () =>
   Effect.gen(function* () {
     const relay = yield* Effect.promise(() => withStdoutReroutedToStderr(() => getRelay()));
-    yield* Effect.promise(() =>
-      runMcpStdioServer({ relay, codeRelay: makeQuickJsRelay() }),
-    );
+    yield* Effect.promise(() => runMcpStdioServer({ relay, codeRelay: makeQuickJsRelay() }));
   });
 
 const scope = Options.string("scope").pipe(
@@ -785,7 +783,8 @@ const parseCallHelpArgs = (args: ReadonlyArray<string>): ParsedCallHelpArgs => {
 
     if (token === "--base-url") {
       const value = args[index + 1];
-      if (!value) throw new Error("Missing value for --base-url (e.g. --base-url http://localhost:4788)");
+      if (!value)
+        throw new Error("Missing value for --base-url (e.g. --base-url http://localhost:4788)");
       baseUrl = value;
       index += 1;
       continue;
@@ -1323,19 +1322,27 @@ const jsonSchemaToTs = (schema: unknown, indent = "  "): string => {
   }
 
   if (Array.isArray(schema.oneOf)) {
-    return (schema.oneOf as unknown[]).map((s) => jsonSchemaToTs(s, indent)).join(" | ") || "unknown";
+    return (
+      (schema.oneOf as unknown[]).map((s) => jsonSchemaToTs(s, indent)).join(" | ") || "unknown"
+    );
   }
   if (Array.isArray(schema.anyOf)) {
-    return (schema.anyOf as unknown[]).map((s) => jsonSchemaToTs(s, indent)).join(" | ") || "unknown";
+    return (
+      (schema.anyOf as unknown[]).map((s) => jsonSchemaToTs(s, indent)).join(" | ") || "unknown"
+    );
   }
   if (Array.isArray(schema.allOf)) {
-    return (schema.allOf as unknown[]).map((s) => jsonSchemaToTs(s, indent)).join(" & ") || "unknown";
+    return (
+      (schema.allOf as unknown[]).map((s) => jsonSchemaToTs(s, indent)).join(" & ") || "unknown"
+    );
   }
 
   if (Array.isArray(schema.enum)) {
-    return (schema.enum as unknown[])
-      .map((v) => (typeof v === "string" ? `"${v}"` : String(v)))
-      .join(" | ") || "unknown";
+    return (
+      (schema.enum as unknown[])
+        .map((v) => (typeof v === "string" ? `"${v}"` : String(v)))
+        .join(" | ") || "unknown"
+    );
   }
 
   return "unknown";
@@ -1345,8 +1352,7 @@ const jsonSchemaToTs = (schema: unknown, indent = "  "): string => {
  * Turn a tool id like "PetStore.findPetsByStatus" into a safe TS identifier
  * like "PetStore_findPetsByStatus".
  */
-const toolIdToInterfaceName = (id: string): string =>
-  id.replace(/[^a-zA-Z0-9_]/g, "_");
+const toolIdToInterfaceName = (id: string): string => id.replace(/[^a-zA-Z0-9_]/g, "_");
 
 const toolsGenTypesCommand = Command.make(
   "gen-types",
@@ -1427,7 +1433,12 @@ const toolsGenTypesCommand = Command.make(
 ).pipe(Command.withDescription("Generate TypeScript type definitions from discovered tools"));
 
 const toolsCommand = Command.make("tools").pipe(
-  Command.withSubcommands([toolsSearchCommand, toolsSourcesCommand, toolsDescribeCommand, toolsGenTypesCommand] as const),
+  Command.withSubcommands([
+    toolsSearchCommand,
+    toolsSourcesCommand,
+    toolsDescribeCommand,
+    toolsGenTypesCommand,
+  ] as const),
   Command.withDescription("Discover available tools and sources"),
 );
 

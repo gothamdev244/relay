@@ -5,7 +5,7 @@ interface RelayWindowConfig {
 
 declare global {
   interface Window {
-    readonly executor?: RelayWindowConfig;
+    readonly relay?: RelayWindowConfig;
   }
 }
 

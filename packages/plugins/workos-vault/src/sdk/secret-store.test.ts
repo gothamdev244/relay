@@ -389,8 +389,7 @@ describe("WorkOS Vault secret provider — multi-scope isolation", () => {
   it.effect("shadowed `set` produces independent metadata rows per scope", () =>
     Effect.gen(function* () {
       const client = makeFakeClient();
-      const { execOuter, execInner, outerId, innerId, config } =
-        yield* makeLayeredRelays(client);
+      const { execOuter, execInner, outerId, innerId, config } = yield* makeLayeredRelays(client);
 
       yield* execOuter.secrets.set(
         SetSecretInput.make({

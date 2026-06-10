@@ -140,9 +140,7 @@ export default function relayVitePlugin(options: RelayVitePluginOptions = {}): P
         interopDefault: true,
         moduleCache: false,
       });
-      const mod = (await jiti.import(configPath)) as
-        | { default?: RelayCliConfig }
-        | RelayCliConfig;
+      const mod = (await jiti.import(configPath)) as { default?: RelayCliConfig } | RelayCliConfig;
       const config = ("default" in mod && mod.default ? mod.default : mod) as RelayCliConfig;
       for (const spec of config.plugins()) {
         if (!spec.packageName) continue;

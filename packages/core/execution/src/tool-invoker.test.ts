@@ -515,9 +515,7 @@ describe("tool discovery", () => {
     "describes an error-as-value return type that accepts sandbox invocation failures",
     () =>
       Effect.gen(function* () {
-        const relay = yield* createRelay(
-          makeTestConfig({ plugins: [errorPlugin()] as const }),
-        );
+        const relay = yield* createRelay(makeTestConfig({ plugins: [errorPlugin()] as const }));
         const engine = createExecutionEngine({ relay, codeRelay });
 
         const execution = yield* engine.execute(
@@ -774,8 +772,7 @@ const apiPlugin = definePlugin(() => ({
 }));
 
 describe("pause/resume with multiple elicitations", () => {
-  const makeElicitingRelay = () =>
-    createRelay(makeTestConfig({ plugins: [apiPlugin()] as const }));
+  const makeElicitingRelay = () => createRelay(makeTestConfig({ plugins: [apiPlugin()] as const }));
 
   it.effect(
     "resume does not hang when execution hits a second elicitation",

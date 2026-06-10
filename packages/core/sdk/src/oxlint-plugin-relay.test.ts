@@ -46,7 +46,7 @@ describe("executor oxlint plugin", () => {
     );
 
     expect(result.status).toBe(1);
-    expect(result.stdout).toContain("executor(no-conditional-tests)");
+    expect(result.stdout).toContain("relay(no-conditional-tests)");
   });
 
   it("allows unconditional expects over conditional values", async () => {
@@ -84,7 +84,7 @@ describe("executor oxlint plugin", () => {
     );
 
     expect(result.status).toBe(1);
-    expect(result.stdout).toContain("executor(no-schema-class)");
+    expect(result.stdout).toContain("relay(no-schema-class)");
   });
 
   it("rejects Schema.TaggedClass declarations anywhere", async () => {
@@ -100,7 +100,7 @@ describe("executor oxlint plugin", () => {
     );
 
     expect(result.status).toBe(1);
-    expect(result.stdout).toContain("executor(no-schema-class)");
+    expect(result.stdout).toContain("relay(no-schema-class)");
   });
 
   it("allows Schema.TaggedErrorClass (typed errors are exempt)", async () => {
@@ -153,7 +153,7 @@ describe("executor oxlint plugin", () => {
     );
 
     expect(result.status).toBe(1);
-    expect(result.stdout).toContain("executor(prefer-effect-predicate)");
+    expect(result.stdout).toContain("relay(prefer-effect-predicate)");
   });
 
   it("rejects inline nullish filter predicates in Effect files", async () => {
@@ -167,7 +167,7 @@ describe("executor oxlint plugin", () => {
     );
 
     expect(result.status).toBe(1);
-    expect(result.stdout).toContain("executor(prefer-effect-predicate)");
+    expect(result.stdout).toContain("relay(prefer-effect-predicate)");
   });
 
   it("allows null filters in files that do not import Effect", async () => {

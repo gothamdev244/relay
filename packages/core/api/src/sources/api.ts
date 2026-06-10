@@ -1,11 +1,6 @@
 import { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi";
 import { Schema } from "effect";
-import {
-  InternalError,
-  ScopeId,
-  SourceRemovalNotAllowedError,
-  ToolId,
-} from "@relay-sh/sdk/shared";
+import { InternalError, ScopeId, SourceRemovalNotAllowedError, ToolId } from "@relay-sh/sdk/shared";
 
 // ---------------------------------------------------------------------------
 // Params

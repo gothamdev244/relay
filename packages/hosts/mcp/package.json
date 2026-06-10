@@ -14,9 +14,9 @@
   },
   "dependencies": {
     "@cfworker/json-schema": "^4.1.1",
+    "@modelcontextprotocol/sdk": "^1.12.1",
     "@relay-sh/execution": "workspace:*",
     "@relay-sh/sdk": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.12.1",
     "effect": "catalog:",
     "zod": "^4.3.0"
   },

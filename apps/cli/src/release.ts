@@ -259,7 +259,7 @@ const main = async () => {
   const wrapperArchivePath = await packWrapperPackage();
   const assetPaths = await collectReleaseAssetPaths(wrapperArchivePath);
 
-  console.log(`Prepared executor@${version} for ${channel}`);
+  console.log(`Prepared relay@${version} for ${channel}`);
   for (const assetPath of assetPaths) {
     console.log(`- ${assetPath}`);
   }

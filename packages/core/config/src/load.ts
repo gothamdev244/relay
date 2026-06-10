@@ -18,11 +18,7 @@ export class ConfigParseError extends Schema.TaggedErrorClass<ConfigParseError>(
  */
 export const loadConfig = (
   path: string,
-): Effect.Effect<
-  RelayFileConfig | null,
-  ConfigParseError | PlatformError,
-  FileSystem.FileSystem
-> =>
+): Effect.Effect<RelayFileConfig | null, ConfigParseError | PlatformError, FileSystem.FileSystem> =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
 

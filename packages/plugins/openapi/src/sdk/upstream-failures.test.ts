@@ -25,12 +25,7 @@ import {
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 
-import {
-  createRelay,
-  definePlugin,
-  type InvokeOptions,
-  type SecretProvider,
-} from "@relay-sh/sdk";
+import { createRelay, definePlugin, type InvokeOptions, type SecretProvider } from "@relay-sh/sdk";
 import { makeTestConfig } from "@relay-sh/sdk/testing";
 import {
   makeOpenApiHttpApiTestSourceConfig,

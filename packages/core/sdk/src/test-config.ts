@@ -184,7 +184,7 @@ export const makeTestWorkspaceHarness = <const TPlugins extends readonly AnyPlug
       } as const;
     }),
     ({ relay, testDb }) =>
-      executor
+      relay
         .close()
         .pipe(
           Effect.ignore,

@@ -154,9 +154,7 @@ describe("graphqlPlugin real protocol server", () => {
   it.effect("adds a source by introspecting the live GraphQL endpoint", () =>
     Effect.gen(function* () {
       const server = yield* serveGreetingServer;
-      const relay = yield* createRelay(
-        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
-      );
+      const relay = yield* createRelay(makeTestConfig({ plugins: [graphqlPlugin()] as const }));
 
       const result = yield* relay.graphql.addSource({
         endpoint: server.endpoint,
@@ -179,9 +177,7 @@ describe("graphqlPlugin real protocol server", () => {
   it.effect("invokes a live query with headers and query params", () =>
     Effect.gen(function* () {
       const server = yield* serveGreetingServer;
-      const relay = yield* createRelay(
-        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
-      );
+      const relay = yield* createRelay(makeTestConfig({ plugins: [graphqlPlugin()] as const }));
 
       yield* relay.graphql.addSource({
         endpoint: server.endpoint,
@@ -224,9 +220,7 @@ describe("graphqlPlugin real protocol server", () => {
           });
         }),
       );
-      const relay = yield* createRelay(
-        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
-      );
+      const relay = yield* createRelay(makeTestConfig({ plugins: [graphqlPlugin()] as const }));
 
       yield* relay.graphql.addSource({
         endpoint: server.url("/graphql"),
@@ -304,9 +298,7 @@ describe("graphqlPlugin real protocol server", () => {
 describe("graphqlPlugin", () => {
   it.effect("registers tools from introspection JSON", () =>
     Effect.gen(function* () {
-      const relay = yield* createRelay(
-        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
-      );
+      const relay = yield* createRelay(makeTestConfig({ plugins: [graphqlPlugin()] as const }));
 
       const result = yield* relay.graphql.addSource({
         endpoint: "http://localhost:4000/graphql",
@@ -334,9 +326,7 @@ describe("graphqlPlugin", () => {
 
   it.effect("removes a source and its tools", () =>
     Effect.gen(function* () {
-      const relay = yield* createRelay(
-        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
-      );
+      const relay = yield* createRelay(makeTestConfig({ plugins: [graphqlPlugin()] as const }));
 
       yield* relay.graphql.addSource({
         endpoint: "http://localhost:4000/graphql",
@@ -360,9 +350,7 @@ describe("graphqlPlugin", () => {
 
   it.effect("lists sources with the relay built-in source", () =>
     Effect.gen(function* () {
-      const relay = yield* createRelay(
-        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
-      );
+      const relay = yield* createRelay(makeTestConfig({ plugins: [graphqlPlugin()] as const }));
 
       yield* relay.graphql.addSource({
         endpoint: "http://localhost:4000/graphql",
@@ -388,9 +376,7 @@ describe("graphqlPlugin", () => {
 
   it.effect("mutations require approval via resolveAnnotations", () =>
     Effect.gen(function* () {
-      const relay = yield* createRelay(
-        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
-      );
+      const relay = yield* createRelay(makeTestConfig({ plugins: [graphqlPlugin()] as const }));
 
       yield* relay.graphql.addSource({
         endpoint: "http://localhost:4000/graphql",
@@ -413,9 +399,7 @@ describe("graphqlPlugin", () => {
 
   it.effect("updateSource patches endpoint/headers without re-registering", () =>
     Effect.gen(function* () {
-      const relay = yield* createRelay(
-        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
-      );
+      const relay = yield* createRelay(makeTestConfig({ plugins: [graphqlPlugin()] as const }));
 
       yield* relay.graphql.addSource({
         endpoint: "http://localhost:4000/graphql",
@@ -498,11 +482,7 @@ describe("graphqlPlugin", () => {
         makeTestConfig({ plugins: [sampleDataPlugin(), graphqlPlugin()] as const }),
       );
 
-      const trusted = yield* relay.tools.invoke(
-        "sample.read",
-        {},
-        { onElicitation: declineAll },
-      );
+      const trusted = yield* relay.tools.invoke("sample.read", {}, { onElicitation: declineAll });
       expect(trusted).toBe("sample-value");
       const declined = yield* relay.tools
         .invoke(
@@ -528,9 +508,7 @@ describe("graphqlPlugin", () => {
   it.effect("applies source headers to the introspection request after approval", () =>
     Effect.gen(function* () {
       const server = yield* serveGreetingServer;
-      const relay = yield* createRelay(
-        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
-      );
+      const relay = yield* createRelay(makeTestConfig({ plugins: [graphqlPlugin()] as const }));
 
       yield* relay.tools.invoke(
         "relay.graphql.addSource",
@@ -821,10 +799,7 @@ describe("graphqlPlugin", () => {
         },
       });
 
-      const bindings = yield* relay.graphql.listSourceBindings(
-        "row_scoped_credentials",
-        ORG_SCOPE,
-      );
+      const bindings = yield* relay.graphql.listSourceBindings("row_scoped_credentials", ORG_SCOPE);
 
       expect(bindings.map((binding) => binding.slot).sort()).toEqual([
         graphqlHeaderSlot("Authorization"),
@@ -1146,9 +1121,7 @@ describe("graphqlPlugin detect URL-token fallback", () => {
   // produce a candidate.
   it.effect("returns low-confidence candidate when path has /graphql segment", () =>
     Effect.gen(function* () {
-      const relay = yield* createRelay(
-        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
-      );
+      const relay = yield* createRelay(makeTestConfig({ plugins: [graphqlPlugin()] as const }));
       const results = yield* relay.sources.detect("http://127.0.0.1:1/api/graphql");
       const gql = results.find((r) => r.kind === "graphql");
       expect(gql).toBeDefined();
@@ -1158,9 +1131,7 @@ describe("graphqlPlugin detect URL-token fallback", () => {
 
   it.effect("matches graphql on hostname label", () =>
     Effect.gen(function* () {
-      const relay = yield* createRelay(
-        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
-      );
+      const relay = yield* createRelay(makeTestConfig({ plugins: [graphqlPlugin()] as const }));
       const results = yield* relay.sources.detect("http://graphql.127.0.0.1.nip.io:1/");
       const gql = results.find((r) => r.kind === "graphql");
       expect(gql?.confidence).toBe("low");
@@ -1169,9 +1140,7 @@ describe("graphqlPlugin detect URL-token fallback", () => {
 
   it.effect("does not match graphql as a substring", () =>
     Effect.gen(function* () {
-      const relay = yield* createRelay(
-        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
-      );
+      const relay = yield* createRelay(makeTestConfig({ plugins: [graphqlPlugin()] as const }));
       const results = yield* relay.sources.detect("http://127.0.0.1:1/graphqlite");
       expect(results.find((r) => r.kind === "graphql")).toBeUndefined();
     }),
@@ -1179,9 +1148,7 @@ describe("graphqlPlugin detect URL-token fallback", () => {
 
   it.effect("returns null when no token match and introspection fails", () =>
     Effect.gen(function* () {
-      const relay = yield* createRelay(
-        makeTestConfig({ plugins: [graphqlPlugin()] as const }),
-      );
+      const relay = yield* createRelay(makeTestConfig({ plugins: [graphqlPlugin()] as const }));
       const results = yield* relay.sources.detect("http://127.0.0.1:1/api/v1");
       expect(results.find((r) => r.kind === "graphql")).toBeUndefined();
     }),

@@ -1,8 +1,4 @@
-import type {
-  ScopeId,
-  ScopedSecretCredentialInput,
-  SecretBackedValue,
-} from "@relay-sh/sdk/shared";
+import type { ScopeId, ScopedSecretCredentialInput, SecretBackedValue } from "@relay-sh/sdk/shared";
 
 import { FieldLabel } from "../components/field";
 import { HeadersList } from "./headers-list";

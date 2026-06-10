@@ -65,18 +65,18 @@ The `@relay-sh/config` package already maintains `relay.jsonc` as a source of tr
 
 ## Key files
 
-| File                                          | Role                                      |
-| --------------------------------------------- | ----------------------------------------- |
-| `packages/core/cli/src/commands/generate.ts`  | CLI generate command                      |
-| `packages/core/cli/src/generators/drizzle.ts` | Drizzle schema generator                  |
+| File                                          | Role                                   |
+| --------------------------------------------- | -------------------------------------- |
+| `packages/core/cli/src/commands/generate.ts`  | CLI generate command                   |
+| `packages/core/cli/src/generators/drizzle.ts` | Drizzle schema generator               |
 | `packages/core/sdk/src/config.ts`             | `defineRelayConfig` helper             |
 | `packages/core/config/src/schema.ts`          | `relay.jsonc` schema                   |
-| `packages/core/config/src/config-store.ts`    | Plugin store → config file decorator      |
-| `packages/core/config/src/load.ts`            | Config loading                            |
-| `apps/cloud/relay.config.ts`               | Cloud config for CLI                      |
-| `apps/cloud/src/services/relay-schema.ts`  | Generated drizzle schema                  |
-| `apps/cloud/drizzle/0000_*.sql`               | Fresh migration                           |
-| `apps/local/relay.config.ts`               | Local config for CLI                      |
-| `apps/local/src/server/relay-schema.ts`    | Generated drizzle schema                  |
-| `apps/local/drizzle/0000_*.sql`               | Fresh migration                           |
-| `apps/local/src/server/relay.ts`           | Local relay bootstrap with `migrate()` |
+| `packages/core/config/src/config-store.ts`    | Plugin store → config file decorator   |
+| `packages/core/config/src/load.ts`            | Config loading                         |
+| `apps/cloud/relay.config.ts`                  | Cloud config for CLI                   |
+| `apps/cloud/src/services/relay-schema.ts`     | Generated drizzle schema               |
+| `apps/cloud/drizzle/0000_*.sql`               | Fresh migration                        |
+| `apps/local/relay.config.ts`                  | Local config for CLI                   |
+| `apps/local/src/server/relay-schema.ts`       | Generated drizzle schema               |
+| `apps/local/drizzle/0000_*.sql`               | Fresh migration                        |
+| `apps/local/src/server/relay.ts`              | Local relay bootstrap with `migrate()` |

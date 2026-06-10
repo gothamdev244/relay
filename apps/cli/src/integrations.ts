@@ -2,10 +2,7 @@ import { Effect, Layer, ManagedRuntime } from "effect";
 import { FetchHttpClient } from "effect/unstable/http";
 import { BunFileSystem } from "@effect/platform-bun";
 
-import {
-  IntegrationsRegistry,
-  integrationsRegistryLayer,
-} from "@relay-sh/integrations-registry";
+import { IntegrationsRegistry, integrationsRegistryLayer } from "@relay-sh/integrations-registry";
 
 import { USER_AGENT } from "./installation";
 

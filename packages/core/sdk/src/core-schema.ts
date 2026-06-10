@@ -108,13 +108,7 @@ const credentialBindingTable = (() => {
     onUpdate: ({ builder, set, create, where, context }) => {
       const target = requireRelayScopeTarget("credential_binding", "write", where, context);
       if (set.scope_id !== undefined) {
-        assertRelayScopeTargetValue(
-          "credential_binding",
-          "write",
-          set.scope_id,
-          target,
-          context,
-        );
+        assertRelayScopeTargetValue("credential_binding", "write", set.scope_id, target, context);
       }
       if (create?.scope_id !== undefined) {
         assertRelayScopeTargetValue(

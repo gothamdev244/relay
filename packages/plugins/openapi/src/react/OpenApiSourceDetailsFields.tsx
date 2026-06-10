@@ -7,10 +7,7 @@ import {
   CardStackEntryField,
   CardStackEntryTitle,
 } from "@relay-sh/react/components/card-stack";
-import {
-  FreeformCombobox,
-  type FreeformComboboxOption,
-} from "@relay-sh/react/components/combobox";
+import { FreeformCombobox, type FreeformComboboxOption } from "@relay-sh/react/components/combobox";
 import { Input } from "@relay-sh/react/components/input";
 import { SourceFavicon } from "@relay-sh/react/components/source-favicon";
 import {

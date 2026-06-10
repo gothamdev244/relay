@@ -63,11 +63,11 @@ Example `mcp.json` for Claude Code / Cursor:
 
 Three entry points — pick the one that fits:
 
-| Import | Use case |
-|---|---|
-| `@relay-sh/sdk` | Promise-based. Scripts, quick integrations, non-Effect codebases. |
-| `@relay-sh/sdk/core` | Effect-native. Full type safety, streaming, composable pipelines. |
-| `@relay-sh/sdk/testing` | Mocks and utilities for writing tests against your tools. |
+| Import                  | Use case                                                          |
+| ----------------------- | ----------------------------------------------------------------- |
+| `@relay-sh/sdk`         | Promise-based. Scripts, quick integrations, non-Effect codebases. |
+| `@relay-sh/sdk/core`    | Effect-native. Full type safety, streaming, composable pipelines. |
+| `@relay-sh/sdk/testing` | Mocks and utilities for writing tests against your tools.         |
 
 ```ts
 import { createRelay } from "@relay-sh/sdk";

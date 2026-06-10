@@ -454,10 +454,7 @@ const relay =
     scopes: [userScope],
     adapter,
     blobs,
-    plugins: [
-      artifactsLocalGitPlugin({ rootDir: ".relay-artifacts" }),
-      workflowsPlugin(),
-    ] as const,
+    plugins: [artifactsLocalGitPlugin({ rootDir: ".relay-artifacts" }), workflowsPlugin()] as const,
     protocols: {
       "relay.artifacts.store": "artifacts-local-git",
     },

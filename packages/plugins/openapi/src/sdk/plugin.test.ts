@@ -329,27 +329,19 @@ describe("OpenAPI Plugin", () => {
 
       expect(result).toEqual({ sourceId: "runtime", toolCount: 4 });
       expect(yield* relay.openapi.getSource("runtime", String(userScope))).toBeNull();
-      expect((yield* relay.openapi.getSource("runtime", String(orgScope)))?.scope).toBe(
-        orgScope,
-      );
+      expect((yield* relay.openapi.getSource("runtime", String(orgScope)))?.scope).toBe(orgScope);
       expect((yield* relay.tools.list()).map((t) => t.id)).toContain("runtime.items.listItems");
     }),
   );
 
   it.effect("requires approval before adding a source through the runtime tool", () =>
     Effect.gen(function* () {
-      const relay = yield* createRelay(
-        makeTestConfig({ plugins: [openApiPlugin()] as const }),
-      );
+      const relay = yield* createRelay(makeTestConfig({ plugins: [openApiPlugin()] as const }));
 
       const declined = yield* relay.tools
-        .invoke(
-          "relay.openapi.addSource",
-          testApiSourceConfig({ namespace: "runtime_declined" }),
-          {
-            onElicitation: () => Effect.succeed({ action: "decline" as const }),
-          },
-        )
+        .invoke("relay.openapi.addSource", testApiSourceConfig({ namespace: "runtime_declined" }), {
+          onElicitation: () => Effect.succeed({ action: "decline" as const }),
+        })
         .pipe(Effect.flip);
 
       expect(Predicate.isTagged(declined, "ElicitationDeclinedError")).toBe(true);
@@ -614,10 +606,7 @@ describe("OpenAPI Plugin", () => {
         }),
       );
 
-      const bindings = yield* relay.openapi.listSourceBindings(
-        "default_target_scope",
-        TEST_SCOPE,
-      );
+      const bindings = yield* relay.openapi.listSourceBindings("default_target_scope", TEST_SCOPE);
       expect(bindings).toHaveLength(1);
       expect(bindings[0]).toMatchObject({
         scopeId: ScopeId.make(TEST_SCOPE),

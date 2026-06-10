@@ -22,11 +22,11 @@ export const ErrorCaptureLive: Layer.Layer<ErrorCapture> = Layer.succeed(
         const traceId = nextTraceId();
         const squashed = Cause.squash(cause);
         console.error(
-          `[executor ${traceId}]`,
+          `[relay ${traceId}]`,
           // oxlint-disable-next-line relay/no-instanceof-error -- boundary: console logger preserves native Error stack output
           squashed instanceof Error ? (squashed.stack ?? squashed) : squashed,
         );
-        console.error(`[executor ${traceId}] cause:`, Cause.pretty(cause));
+        console.error(`[relay ${traceId}] cause:`, Cause.pretty(cause));
         return traceId;
       }),
   }),

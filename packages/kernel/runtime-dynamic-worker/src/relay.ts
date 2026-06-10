@@ -429,7 +429,7 @@ const startDynamicWorker = (
         mainModule: ENTRY_MODULE,
         modules: {
           ...safeModules,
-          [ENTRY_MODULE]: executorModule,
+          [ENTRY_MODULE]: relayModule,
         },
         globalOutbound: options.globalOutbound ?? null,
       }));
