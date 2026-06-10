@@ -4,7 +4,7 @@ Edit examples/docs-sdk-quickstart/src/main.ts between the docs:start/docs:end ma
 _/}
 
 ```ts
-const schema = await executor.tools.schema("inventory.listItems");
+const schema = await relay.tools.schema("inventory.listItems");
 
 console.log(schema?.inputTypeScript ?? "No input required");
 ```

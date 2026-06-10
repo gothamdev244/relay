@@ -4,7 +4,7 @@ Edit examples/docs-sdk-quickstart/src/main.ts between the docs:start/docs:end ma
 _/}
 
 ```ts
-const tools = await executor.tools.list({ sourceId: "inventory" });
+const tools = await relay.tools.list({ sourceId: "inventory" });
 
 for (const tool of tools) {
   console.log(`${tool.id}: ${tool.description}`);

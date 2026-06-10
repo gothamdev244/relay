@@ -1,53 +1,53 @@
 ---
 title: Quickstart
-description: Create an Executor, add a source, and inspect its tools.
+description: Create a Relay, add a source, and inspect its tools.
 ---
 
-import CreateExecutor from "/snippets/sdk/quickstart/create-relay.mdx";
+import CreateRelay from "/snippets/sdk/quickstart/create-relay.mdx";
 import AddSource from "/snippets/sdk/quickstart/add-source.mdx";
 import ListTools from "/snippets/sdk/quickstart/list-tools.mdx";
 import InspectSchema from "/snippets/sdk/quickstart/inspect-schema.mdx";
-import CloseExecutor from "/snippets/sdk/quickstart/close-relay.mdx";
+import CloseRelay from "/snippets/sdk/quickstart/close-relay.mdx";
 
 {/* Code snippets on this page are generated from examples/docs-sdk-quickstart/src/main.ts. */}
 
-The SDK lets you embed Executor in a TypeScript application.
+The SDK lets you embed Relay in a TypeScript application.
 
-This quickstart creates an Executor, loads an OpenAPI source from a local spec, lists the tools it contributed, and inspects one tool schema. The snippets on this page are generated from a runnable example in `examples/docs-sdk-quickstart`.
+This quickstart creates a Relay, loads an OpenAPI source from a local spec, lists the tools it contributed, and inspects one tool schema. The snippets on this page are generated from a runnable example in `examples/docs-sdk-quickstart`.
 
 ## Install
 
 <CodeGroup>
 
 ```bash npm
-npm install @relay-js/sdk @relay-js/plugin-openapi
+npm install @relay-sh/sdk @relay-sh/plugin-openapi
 ```
 
 ```bash pnpm
-pnpm add @relay-js/sdk @relay-js/plugin-openapi
+pnpm add @relay-sh/sdk @relay-sh/plugin-openapi
 ```
 
 ```bash yarn
-yarn add @relay-js/sdk @relay-js/plugin-openapi
+yarn add @relay-sh/sdk @relay-sh/plugin-openapi
 ```
 
 ```bash bun
-bun add @relay-js/sdk @relay-js/plugin-openapi
+bun add @relay-sh/sdk @relay-sh/plugin-openapi
 ```
 
 </CodeGroup>
 
-## Create An Executor
+## Create a Relay
 
 Import the SDK and configure the plugins you want to expose.
 
-<CreateExecutor />
+<CreateRelay />
 
 `onElicitation: "accept-all"` is convenient for scripts and examples. Applications with interactive approval flows should pass a handler instead.
 
 ## Add A Source
 
-Sources add tools to the Executor catalog. This example registers an OpenAPI document under the `inventory` namespace.
+Sources add tools to the Relay catalog. This example registers an OpenAPI document under the `inventory` namespace.
 
 <AddSource />
 
@@ -65,6 +65,6 @@ Tools expose schema metadata that agents and applications can use before invokin
 
 ## Shut Down
 
-Close the Executor when your process is done with it.
+Close the Relay when your process is done with it.
 
-<CloseExecutor />
+<CloseRelay />

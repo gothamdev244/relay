@@ -4,7 +4,7 @@ Edit examples/docs-sdk-quickstart/src/main.ts between the docs:start/docs:end ma
 _/}
 
 ```ts
-const executor = await createExecutor({
+const relay = await createRelay({
   scopes: [{ id: "docs-workspace", name: "Docs Workspace" }],
   plugins: [openApiPlugin()],
   onElicitation: "accept-all",
