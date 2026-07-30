@@ -81,6 +81,13 @@ export const openApiPresets: readonly OpenApiPreset[] = [
     featured: true,
   },
   {
+    id: "xquik",
+    name: "Xquik",
+    summary: "X posts, users, lists, messages, and media.",
+    url: "https://xquik.com/openapi.json",
+    icon: "https://xquik.com/icon.svg",
+  },
+  {
     id: "axiom",
     name: "Axiom",
     summary: "Log ingestion, querying, datasets, and monitors.",

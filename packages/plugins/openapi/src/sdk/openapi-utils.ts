@@ -38,15 +38,26 @@ export class DocResolver {
 
   private resolvePointer(ref: string): unknown {
     if (!ref.startsWith("#/")) return null;
-    const segments = ref.slice(2).split("/");
+
     let current: unknown = this.doc;
-    for (const segment of segments) {
+    for (const encodedSegment of ref.slice(2).split("/")) {
+      const segment = decodePointerToken(encodedSegment);
+      if (segment === null) return null;
       if (typeof current !== "object" || current === null) return null;
+      if (!Object.hasOwn(current, segment)) return null;
       current = (current as Record<string, unknown>)[segment];
     }
     return current;
   }
 }
+
+const decodeUriComponent = Option.liftThrowable(decodeURIComponent);
+
+const decodePointerToken = (token: string): string | null =>
+  Option.match(decodeUriComponent(token), {
+    onNone: () => null,
+    onSome: (decoded) => decoded.replaceAll("~1", "/").replaceAll("~0", "~"),
+  });
 
 const isRef = (value: unknown): value is { $ref: string } =>
   typeof value === "object" && value !== null && "$ref" in value;
